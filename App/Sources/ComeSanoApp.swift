@@ -77,33 +77,37 @@ private struct RootView: View {
 
         switch store.primaryProvider {
         case .openAI:
-            if let openAIClient {
-                return NutritionAIClientFactory.makeWithFallback(primary: openAIClient, secondary: geminiClient)
+            guard let openAIClient else {
+                return EmptyNutritionInference(
+                    message: "Proveedor principal OpenAI seleccionado, pero no hay OPENAI_API_KEY configurada en IA."
+                )
             }
-            if let geminiClient {
-                return geminiClient
-            }
+            return NutritionAIClientFactory.makeWithFallback(primary: openAIClient, secondary: geminiClient)
         case .gemini:
-            if let geminiClient {
-                return NutritionAIClientFactory.makeWithFallback(primary: geminiClient, secondary: openAIClient)
+            guard let geminiClient else {
+                return EmptyNutritionInference(
+                    message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY configurada en IA."
+                )
             }
-            if let openAIClient {
-                return openAIClient
-            }
+            return NutritionAIClientFactory.makeWithFallback(primary: geminiClient, secondary: openAIClient)
         }
-
-        return EmptyNutritionInference()
     }
 }
 
 private struct EmptyNutritionInference: MultimodalNutritionInference {
+    let message: String
+
+    init(message: String = "Configura OPENAI_API_KEY o GEMINI_API_KEY en la pestaña IA.") {
+        self.message = message
+    }
+
     func inferNutrition(fromImageData data: Data, prompt: String) async throws -> NutritionInferenceResult {
         _ = data
         _ = prompt
         return NutritionInferenceResult(
             foodItems: [],
             shoppingList: [],
-            notes: "Configura OPENAI_API_KEY o GEMINI_API_KEY en la pestaña IA."
+            notes: message
         )
     }
 }
