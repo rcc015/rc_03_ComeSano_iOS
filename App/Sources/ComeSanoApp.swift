@@ -82,14 +82,14 @@ private struct RootView: View {
                     message: "Proveedor principal OpenAI seleccionado, pero no hay OPENAI_API_KEY configurada en IA."
                 )
             }
-            return NutritionAIClientFactory.makeWithFallback(primary: openAIClient, secondary: geminiClient)
+            return openAIClient
         case .gemini:
             guard let geminiClient else {
                 return EmptyNutritionInference(
                     message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY configurada en IA."
                 )
             }
-            return NutritionAIClientFactory.makeWithFallback(primary: geminiClient, secondary: openAIClient)
+            return geminiClient
         }
     }
 }
