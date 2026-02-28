@@ -15,7 +15,7 @@ struct ComeSanoApp: App {
 private struct RootView: View {
     private let dashboardViewModel: DashboardViewModel
     @StateObject private var photoAnalyzerViewModel: FoodPhotoAnalyzerViewModel
-    @StateObject private var keychainStore: OpenAIKeychainStore
+    @StateObject private var keychainStore: AIKeychainStore
 
     init() {
         let profile = UserProfile(
@@ -33,10 +33,9 @@ private struct RootView: View {
             intakeProvider: MockIntakeProvider()
         )
 
-        let keyStore = OpenAIKeychainStore()
-        let key = keyStore.currentKey() ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+        let keyStore = AIKeychainStore()
         _photoAnalyzerViewModel = StateObject(
-            wrappedValue: FoodPhotoAnalyzerViewModel(aiClient: Self.makeAIClient(apiKey: key))
+            wrappedValue: FoodPhotoAnalyzerViewModel(aiClient: Self.makeAIClient(from: keyStore))
         )
         _keychainStore = StateObject(wrappedValue: keyStore)
     }
@@ -53,8 +52,8 @@ private struct RootView: View {
                     Label("Foto", systemImage: "camera")
                 }
 
-            OpenAISettingsView(keychainStore: keychainStore) { updatedKey in
-                photoAnalyzerViewModel.updateAIClient(Self.makeAIClient(apiKey: updatedKey))
+            AISettingsView(keychainStore: keychainStore) {
+                photoAnalyzerViewModel.updateAIClient(Self.makeAIClient(from: keychainStore))
             }
             .tabItem {
                 Label("IA", systemImage: "key")
@@ -62,11 +61,38 @@ private struct RootView: View {
         }
     }
 
-    private static func makeAIClient(apiKey: String?) -> MultimodalNutritionInference {
-        guard let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return EmptyNutritionInference()
+    private static func makeAIClient(from store: AIKeychainStore) -> MultimodalNutritionInference {
+        let openAIKey = store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+        let geminiKey = store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+
+        let openAIClient = openAIKey.flatMap { key -> MultimodalNutritionInference? in
+            guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return NutritionAIClientFactory.makeOpenAI(apiKey: key, model: .gpt4point1mini)
         }
-        return NutritionAIClientFactory.makeOpenAI(apiKey: apiKey, model: .gpt4point1mini)
+
+        let geminiClient = geminiKey.flatMap { key -> MultimodalNutritionInference? in
+            guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return NutritionAIClientFactory.makeGemini(apiKey: key, model: .gemini2Flash)
+        }
+
+        switch store.primaryProvider {
+        case .openAI:
+            if let openAIClient {
+                return NutritionAIClientFactory.makeWithFallback(primary: openAIClient, secondary: geminiClient)
+            }
+            if let geminiClient {
+                return geminiClient
+            }
+        case .gemini:
+            if let geminiClient {
+                return NutritionAIClientFactory.makeWithFallback(primary: geminiClient, secondary: openAIClient)
+            }
+            if let openAIClient {
+                return openAIClient
+            }
+        }
+
+        return EmptyNutritionInference()
     }
 }
 
@@ -77,7 +103,7 @@ private struct EmptyNutritionInference: MultimodalNutritionInference {
         return NutritionInferenceResult(
             foodItems: [],
             shoppingList: [],
-            notes: "Configura OPENAI_API_KEY en Keychain (tab IA) o variable de entorno."
+            notes: "Configura OPENAI_API_KEY o GEMINI_API_KEY en la pestaña IA."
         )
     }
 }

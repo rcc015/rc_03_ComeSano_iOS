@@ -1,24 +1,34 @@
 import Foundation
 import Security
+import ComeSanoAI
 
 @MainActor
-final class OpenAIKeychainStore: ObservableObject {
-    @Published private(set) var hasStoredKey: Bool = false
+final class AIKeychainStore: ObservableObject {
+    @Published private(set) var hasOpenAIKey = false
+    @Published private(set) var hasGeminiKey = false
+    @Published var primaryProvider: AIProviderChoice
 
     private let service: String
-    private let account: String
 
-    init(service: String = "rcTools.ComeSano", account: String = "openai_api_key") {
+    init(service: String = "rcTools.ComeSano") {
         self.service = service
-        self.account = account
-        hasStoredKey = currentKey() != nil
+
+        let savedProviderRaw = UserDefaults.standard.string(forKey: "ai_primary_provider")
+        self.primaryProvider = AIProviderChoice(rawValue: savedProviderRaw ?? "openAI") ?? .openAI
+
+        refreshFlags()
     }
 
-    func currentKey() -> String? {
+    func refreshFlags() {
+        hasOpenAIKey = key(for: .openAI) != nil
+        hasGeminiKey = key(for: .gemini) != nil
+    }
+
+    func key(for provider: AIProviderChoice) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecAttrAccount as String: account(for: provider),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -35,13 +45,14 @@ final class OpenAIKeychainStore: ObservableObject {
         return key
     }
 
-    func saveKey(_ key: String) throws {
+    func saveKey(_ key: String, for provider: AIProviderChoice) throws {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw KeychainError.emptyValue
         }
 
         let data = Data(trimmed.utf8)
+        let account = account(for: provider)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -55,7 +66,7 @@ final class OpenAIKeychainStore: ObservableObject {
 
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if updateStatus == errSecSuccess {
-            hasStoredKey = true
+            refreshFlags()
             return
         }
 
@@ -66,18 +77,18 @@ final class OpenAIKeychainStore: ObservableObject {
             guard addStatus == errSecSuccess else {
                 throw KeychainError.osStatus(addStatus)
             }
-            hasStoredKey = true
+            refreshFlags()
             return
         }
 
         throw KeychainError.osStatus(updateStatus)
     }
 
-    func deleteKey() throws {
+    func deleteKey(for provider: AIProviderChoice) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account(for: provider)
         ]
 
         let status = SecItemDelete(query as CFDictionary)
@@ -85,7 +96,21 @@ final class OpenAIKeychainStore: ObservableObject {
             throw KeychainError.osStatus(status)
         }
 
-        hasStoredKey = false
+        refreshFlags()
+    }
+
+    func savePrimaryProvider(_ provider: AIProviderChoice) {
+        primaryProvider = provider
+        UserDefaults.standard.set(provider.rawValue, forKey: "ai_primary_provider")
+    }
+
+    private func account(for provider: AIProviderChoice) -> String {
+        switch provider {
+        case .openAI:
+            return "openai_api_key"
+        case .gemini:
+            return "gemini_api_key"
+        }
     }
 }
 
