@@ -34,3 +34,12 @@ targets:
         product: ComeSanoAI
       - package: ComeSanoPackage
         product: ComeSanoUI
+schemes:
+  ComeSanoApp:
+    build:
+      targets:
+        ComeSanoApp: all
+    run:
+      config: Debug
+    archive:
+      config: Release

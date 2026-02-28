@@ -14,7 +14,8 @@ struct ComeSanoApp: App {
 
 private struct RootView: View {
     private let dashboardViewModel: DashboardViewModel
-    private let photoAnalyzerViewModel: FoodPhotoAnalyzerViewModel
+    @StateObject private var photoAnalyzerViewModel: FoodPhotoAnalyzerViewModel
+    @StateObject private var keychainStore: OpenAIKeychainStore
 
     init() {
         let profile = UserProfile(
@@ -32,15 +33,12 @@ private struct RootView: View {
             intakeProvider: MockIntakeProvider()
         )
 
-        let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
-        let aiClient: MultimodalNutritionInference
-        if apiKey.isEmpty {
-            aiClient = EmptyNutritionInference()
-        } else {
-            aiClient = NutritionAIClientFactory.makeOpenAI(apiKey: apiKey, model: .gpt4point1mini)
-        }
-
-        photoAnalyzerViewModel = FoodPhotoAnalyzerViewModel(aiClient: aiClient)
+        let keyStore = OpenAIKeychainStore()
+        let key = keyStore.currentKey() ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+        _photoAnalyzerViewModel = StateObject(
+            wrappedValue: FoodPhotoAnalyzerViewModel(aiClient: Self.makeAIClient(apiKey: key))
+        )
+        _keychainStore = StateObject(wrappedValue: keyStore)
     }
 
     var body: some View {
@@ -54,7 +52,21 @@ private struct RootView: View {
                 .tabItem {
                     Label("Foto", systemImage: "camera")
                 }
+
+            OpenAISettingsView(keychainStore: keychainStore) { updatedKey in
+                photoAnalyzerViewModel.updateAIClient(Self.makeAIClient(apiKey: updatedKey))
+            }
+            .tabItem {
+                Label("IA", systemImage: "key")
+            }
         }
+    }
+
+    private static func makeAIClient(apiKey: String?) -> MultimodalNutritionInference {
+        guard let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return EmptyNutritionInference()
+        }
+        return NutritionAIClientFactory.makeOpenAI(apiKey: apiKey, model: .gpt4point1mini)
     }
 }
 
@@ -65,7 +77,7 @@ private struct EmptyNutritionInference: MultimodalNutritionInference {
         return NutritionInferenceResult(
             foodItems: [],
             shoppingList: [],
-            notes: "Falta OPENAI_API_KEY en el esquema de ejecución."
+            notes: "Configura OPENAI_API_KEY en Keychain (tab IA) o variable de entorno."
         )
     }
 }

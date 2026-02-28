@@ -33,9 +33,9 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
    - Ejecuta `xcodegen generate`.
    - Abre `ComeSano.xcodeproj`.
    - Usa el esquema `ComeSanoApp`.
-2. OpenAI API key en ejecución:
-   - En Xcode: `Product > Scheme > Edit Scheme > Run > Environment Variables`.
-   - Agrega `OPENAI_API_KEY=<tu_api_key>`.
+2. OpenAI API key:
+   - Método recomendado: pestaña `IA` dentro de la app y botón `Guardar en Keychain`.
+   - Método alterno para pruebas rápidas: variable `OPENAI_API_KEY` en Scheme.
 3. Core Data local:
    - Inicializa `PersistenceController()` para almacenamiento local en el dispositivo.
 4. IA:
@@ -43,6 +43,18 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 5. Recomendado:
    - Guardar API keys en Keychain.
    - Confirmación manual de calorías estimadas por IA antes de guardar.
+
+## Keychain (OpenAI)
+
+La app incluye almacenamiento seguro de la API key en Keychain:
+
+1. Abre la app.
+2. Ve a la pestaña `IA`.
+3. Pega tu key `sk-...` en el campo seguro.
+4. Toca `Guardar en Keychain`.
+5. Regresa a `Foto` y analiza.
+
+Si quieres resetearla, usa `Eliminar de Keychain`.
 
 ## Flujo IA (foto -> JSON -> UI)
 

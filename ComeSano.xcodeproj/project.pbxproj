@@ -7,15 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5FC36926ECB2403D7453C2D2 /* OpenAIKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */; };
 		9605CF6F4E0CA8B2AF808E6D /* ComeSanoUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4988B45FB968DD58960F6C45 /* ComeSanoUI */; };
 		99760E9CACEAB486A0627666 /* ComeSanoAI in Frameworks */ = {isa = PBXBuildFile; productRef = 07028C6E7AB66AFA1E5047F3 /* ComeSanoAI */; };
 		B1C929FF16E342433E83EAF8 /* ComeSanoCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA1298B37CDBB2F334E5C75D /* ComeSanoCore */; };
+		BD51CDB903AA0E7726A349B6 /* OpenAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */; };
 		C3778DC4E7350739690B9DB6 /* ComeSanoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIKeychainStore.swift; sourceTree = "<group>"; };
 		0611176768BDF2142F932EC2 /* ComeSanoApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ComeSanoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		07045EE595EB21439A7121D5 /* 03_ComeSano_iOS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 03_ComeSano_iOS; path = .; sourceTree = SOURCE_ROOT; };
+		1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAISettingsView.swift; sourceTree = "<group>"; };
 		95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComeSanoApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -46,6 +50,8 @@
 			isa = PBXGroup;
 			children = (
 				95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */,
+				002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */,
+				1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */,
 			);
 			name = Sources;
 			path = App/Sources;
@@ -133,6 +139,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				C3778DC4E7350739690B9DB6 /* ComeSanoApp.swift in Sources */,
+				5FC36926ECB2403D7453C2D2 /* OpenAIKeychainStore.swift in Sources */,
+				BD51CDB903AA0E7726A349B6 /* OpenAISettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
