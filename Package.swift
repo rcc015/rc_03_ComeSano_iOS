@@ -31,7 +31,7 @@ let package = Package(
         ),
         .target(
             name: "ComeSanoUI",
-            dependencies: ["ComeSanoCore"]
+            dependencies: ["ComeSanoCore", "ComeSanoAI"]
         ),
         .testTarget(
             name: "ComeSanoCoreTests",

@@ -29,5 +29,9 @@
 	<string>ComeSano lee tu gasto energético activo y en reposo para calcular tu progreso diario.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>ComeSano escribe tus calorías consumidas para mantener tu registro nutricional sincronizado.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ComeSano usa la cámara para analizar tus comidas y productos de alacena/refrigerador.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ComeSano usa tu galería para analizar fotos de comidas y productos.</string>
 </dict>
 </plist>

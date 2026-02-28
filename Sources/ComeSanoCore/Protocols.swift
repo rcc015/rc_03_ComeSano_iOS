@@ -14,11 +14,24 @@ public protocol DietaryEnergyWriter: Sendable {
 
 public struct NutritionInferenceResult: Codable, Sendable {
     public var foodItems: [FoodItem]
+    public var shoppingList: [ShoppingListItem]
     public var notes: String
 
-    public init(foodItems: [FoodItem], notes: String) {
+    public init(foodItems: [FoodItem], shoppingList: [ShoppingListItem] = [], notes: String) {
         self.foodItems = foodItems
+        self.shoppingList = shoppingList
         self.notes = notes
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case foodItems, shoppingList, notes
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        foodItems = try container.decodeIfPresent([FoodItem].self, forKey: .foodItems) ?? []
+        shoppingList = try container.decodeIfPresent([ShoppingListItem].self, forKey: .shoppingList) ?? []
+        notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
     }
 }
 

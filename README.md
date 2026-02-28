@@ -10,6 +10,7 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - Dashboard SwiftUI mínimo para visualizar progreso.
 - Persistencia local con CoreData.
 - Capa de IA multimodal con OpenAI.
+- Flujo de foto (cámara/galería) para análisis de comida/alacena.
 - Tests unitarios del motor de cálculo.
 
 ## Estructura
@@ -19,6 +20,8 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - `Sources/ComeSanoUI`: `DashboardView` y `DashboardViewModel`.
 - `Sources/ComeSanoPersistence`: `NSPersistentContainer` y stores para alimentos/alacena/lista.
 - `Sources/ComeSanoAI`: cliente OpenAI para analizar foto de comida/alacena.
+- `Sources/ComeSanoUI/FoodPhotoAnalyzerView.swift`: captura de foto y visualización de resultados.
+- `Sources/ComeSanoUI/FoodPhotoAnalyzerViewModel.swift`: orquestación UI -> IA.
 - `App/Config/Info.plist`: plantilla con llaves de permisos HealthKit.
 - `Tests/ComeSanoCoreTests`: pruebas de negocio.
 
@@ -31,6 +34,20 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 3. Recomendado:
    - Guardar API keys en Keychain.
    - Confirmación manual de calorías estimadas por IA antes de guardar.
+
+## Flujo IA (foto -> JSON -> UI)
+
+1. Acceso a cámara/galería:
+   - `FoodPhotoAnalyzerView` usa `UIImagePickerController` (cámara) y `PhotosPicker` (galería).
+2. Network manager:
+   - `OpenAINetworkManager` envía la imagen en base64 al endpoint `POST /v1/responses`.
+3. Prompt fijo:
+   - `OpenAINutritionPromptBuilder.systemInstruction` fuerza salida JSON estricta.
+4. Decodificación:
+   - `OpenAINutritionClient` extrae JSON y decodifica a `NutritionInferenceResult`.
+5. Datos listos para app:
+   - `foodItems` para calorías/macros.
+   - `shoppingList` para sugerencias de súper.
 
 ## HealthKit (lectura + escritura)
 
