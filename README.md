@@ -19,6 +19,7 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - `Sources/ComeSanoUI`: `DashboardView` y `DashboardViewModel`.
 - `Sources/ComeSanoPersistence`: `NSPersistentContainer` y stores para alimentos/alacena/lista.
 - `Sources/ComeSanoAI`: cliente OpenAI para analizar foto de comida/alacena.
+- `App/Config/Info.plist`: plantilla con llaves de permisos HealthKit.
 - `Tests/ComeSanoCoreTests`: pruebas de negocio.
 
 ## Configuración rápida
@@ -30,6 +31,27 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 3. Recomendado:
    - Guardar API keys en Keychain.
    - Confirmación manual de calorías estimadas por IA antes de guardar.
+
+## HealthKit (lectura + escritura)
+
+La clase `HealthKitNutritionStore` ya incluye:
+
+1. Autorización:
+   - Lee `activeEnergyBurned` y `basalEnergyBurned`.
+   - Escribe `dietaryEnergyConsumed`.
+2. Lectura:
+   - `fetchBurnedCalories(for:)`.
+3. Escritura:
+   - `saveDietaryEnergy(kilocalories:at:)`.
+
+Ejemplo:
+
+```swift
+let health = HealthKitNutritionStore()
+try await health.requestAuthorization()
+let burned = try await health.fetchBurnedCalories(for: .now)
+try await health.saveDietaryEnergy(kilocalories: 650, at: .now)
+```
 
 ## Nota futura
 

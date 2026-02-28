@@ -8,6 +8,10 @@ public protocol DailyIntakeProvider: Sendable {
     func fetchConsumedCalories(for date: Date) async throws -> Double
 }
 
+public protocol DietaryEnergyWriter: Sendable {
+    func saveDietaryEnergy(kilocalories: Double, at date: Date) async throws
+}
+
 public struct NutritionInferenceResult: Codable, Sendable {
     public var foodItems: [FoodItem]
     public var notes: String
