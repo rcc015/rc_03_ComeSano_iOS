@@ -2,9 +2,26 @@ import Foundation
 import ComeSanoCore
 
 public enum AIClientError: Error {
-    case invalidResponse
+    case missingAPIKey
+    case invalidResponse(statusCode: Int, message: String)
     case missingContent
-    case invalidPayload
+    case invalidPayload(rawText: String)
+}
+
+extension AIClientError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .missingAPIKey:
+            return "No hay API key de OpenAI configurada."
+        case let .invalidResponse(statusCode, message):
+            return "OpenAI respondió \(statusCode): \(message)"
+        case .missingContent:
+            return "OpenAI no devolvió contenido utilizable."
+        case let .invalidPayload(rawText):
+            let snippet = String(rawText.prefix(180))
+            return "La respuesta de OpenAI no fue JSON válido. Respuesta parcial: \(snippet)"
+        }
+    }
 }
 
 public enum OpenAIModel: String, Sendable {
@@ -39,6 +56,11 @@ public struct OpenAINetworkManager: OpenAINetworkManaging, Sendable {
     }
 
     public func analyzeImage(base64JPEG: String, prompt: String) async throws -> String {
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKey.isEmpty else {
+            throw AIClientError.missingAPIKey
+        }
+
         let body: [String: Any] = [
             "model": model,
             "input": [
@@ -59,12 +81,17 @@ public struct OpenAINetworkManager: OpenAINetworkManaging, Sendable {
         var request = URLRequest(url: URL(string: "https://api.openai.com/v1/responses")!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue("Bearer \(trimmedKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (responseData, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw AIClientError.invalidResponse
+        guard let http = response as? HTTPURLResponse else {
+            throw AIClientError.invalidResponse(statusCode: -1, message: "Respuesta HTTP inválida.")
+        }
+
+        guard (200..<300).contains(http.statusCode) else {
+            let apiMessage = OpenAIErrorExtractor.message(from: responseData) ?? "Sin detalle de error."
+            throw AIClientError.invalidResponse(statusCode: http.statusCode, message: apiMessage)
         }
 
         let envelope = try JSONDecoder().decode(OpenAIResponsesEnvelope.self, from: responseData)
@@ -97,7 +124,7 @@ public struct OpenAINutritionClient: MultimodalNutritionInference, Sendable {
         let jsonText = try OpenAIJSONExtractor.extractJSONObject(from: rawText)
 
         guard let jsonData = jsonText.data(using: .utf8) else {
-            throw AIClientError.invalidPayload
+            throw AIClientError.invalidPayload(rawText: rawText)
         }
         return try JSONDecoder().decode(NutritionInferenceResult.self, from: jsonData)
     }
@@ -149,11 +176,27 @@ public enum OpenAIJSONExtractor {
         }
 
         guard let start = trimmed.firstIndex(of: "{"), let end = trimmed.lastIndex(of: "}") else {
-            throw AIClientError.invalidPayload
+            throw AIClientError.invalidPayload(rawText: text)
         }
 
         return String(trimmed[start...end])
     }
+}
+
+private enum OpenAIErrorExtractor {
+    static func message(from data: Data) -> String? {
+        guard let envelope = try? JSONDecoder().decode(OpenAIErrorEnvelope.self, from: data) else {
+            return nil
+        }
+        return envelope.error.message
+    }
+}
+
+private struct OpenAIErrorEnvelope: Decodable {
+    struct APIError: Decodable {
+        let message: String
+    }
+    let error: APIError
 }
 
 private struct OpenAIResponsesEnvelope: Decodable {
