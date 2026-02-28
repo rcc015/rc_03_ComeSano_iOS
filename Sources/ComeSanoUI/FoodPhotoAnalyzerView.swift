@@ -55,7 +55,7 @@ public struct FoodPhotoAnalyzerView: View {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                         } else {
-                            Text("Analizar con OpenAI")
+                            Text("Analizar con Gemini")
                                 .frame(maxWidth: .infinity)
                         }
                     }
