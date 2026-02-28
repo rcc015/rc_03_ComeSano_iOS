@@ -8,6 +8,8 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - Cálculo de balance calórico diario y progreso semanal.
 - Proveedor HealthKit para calorías activas y basales.
 - Dashboard SwiftUI mínimo para visualizar progreso.
+- Persistencia local con CoreData + sincronización con CloudKit.
+- Capa de IA multimodal desacoplada (OpenAI / Gemini).
 - Tests unitarios del motor de cálculo.
 
 ## Estructura
@@ -15,11 +17,25 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - `Sources/ComeSanoCore`: dominio y reglas de cálculo.
 - `Sources/ComeSanoHealthKit`: integración con HealthKit.
 - `Sources/ComeSanoUI`: `DashboardView` y `DashboardViewModel`.
+- `Sources/ComeSanoPersistence`: `NSPersistentCloudKitContainer` y stores para alimentos/alacena/lista.
+- `Sources/ComeSanoAI`: clientes multimodales para analizar foto de comida/alacena.
 - `Tests/ComeSanoCoreTests`: pruebas de negocio.
+
+## Configuración rápida
+
+1. CloudKit:
+   - Crea un container iCloud, por ejemplo: `iCloud.com.rcc015.ComeSano`.
+   - Inicializa `PersistenceController(containerIdentifier: \"iCloud.com.rcc015.ComeSano\")`.
+2. IA:
+   - OpenAI: `NutritionAIClientFactory.make(provider: .openAI(apiKey: \"...\"))`
+   - Gemini: `NutritionAIClientFactory.make(provider: .gemini(apiKey: \"...\"))`
+3. Recomendado:
+   - Guardar API keys en Keychain.
+   - Confirmación manual de calorías estimadas por IA antes de guardar.
 
 ## Siguiente fase sugerida
 
 1. Crear target iOS App y target Watch App en Xcode.
 2. Conectar `DashboardView` como pantalla inicial.
-3. Guardar ingestas reales en SwiftData y reemplazar `MockIntakeProvider`.
+3. Guardar ingestas reales y reemplazar `MockIntakeProvider`.
 4. Programar recordatorios de agua/comidas con `UserNotifications`.

@@ -11,12 +11,22 @@ let package = Package(
     products: [
         .library(name: "ComeSanoCore", targets: ["ComeSanoCore"]),
         .library(name: "ComeSanoHealthKit", targets: ["ComeSanoHealthKit"]),
-        .library(name: "ComeSanoUI", targets: ["ComeSanoUI"])
+        .library(name: "ComeSanoUI", targets: ["ComeSanoUI"]),
+        .library(name: "ComeSanoPersistence", targets: ["ComeSanoPersistence"]),
+        .library(name: "ComeSanoAI", targets: ["ComeSanoAI"])
     ],
     targets: [
         .target(name: "ComeSanoCore"),
         .target(
             name: "ComeSanoHealthKit",
+            dependencies: ["ComeSanoCore"]
+        ),
+        .target(
+            name: "ComeSanoPersistence",
+            dependencies: ["ComeSanoCore"]
+        ),
+        .target(
+            name: "ComeSanoAI",
             dependencies: ["ComeSanoCore"]
         ),
         .target(
