@@ -14,7 +14,7 @@ final class AIKeychainStore: ObservableObject {
         self.service = service
 
         let savedProviderRaw = UserDefaults.standard.string(forKey: "ai_primary_provider")
-        self.primaryProvider = AIProviderChoice(rawValue: savedProviderRaw ?? "openAI") ?? .openAI
+        self.primaryProvider = AIProviderChoice(rawValue: savedProviderRaw ?? "gemini") ?? .gemini
 
         refreshFlags()
     }

@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 import ComeSanoCore
 import ComeSanoAI
 
@@ -8,10 +7,9 @@ import UIKit
 
 public struct FoodPhotoAnalyzerView: View {
     @StateObject private var viewModel: FoodPhotoAnalyzerViewModel
-    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageData: Data?
     @State private var previewImage: UIImage?
-    @State private var showCamera = false
+    @State private var pickerSource: ImagePickerSource?
     @State private var userInstruction = ""
 
     public init(viewModel: FoodPhotoAnalyzerViewModel) {
@@ -32,11 +30,11 @@ public struct FoodPhotoAnalyzerView: View {
 
                     HStack {
                         Button("Tomar foto") {
-                            showCamera = true
+                            pickerSource = .camera
                         }
 
-                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            Text("Elegir de galería")
+                        Button("Elegir de galería") {
+                            pickerSource = .library
                         }
                     }
                 }
@@ -99,19 +97,11 @@ public struct FoodPhotoAnalyzerView: View {
                 }
             }
             .navigationTitle("Analizar Foto")
-            .sheet(isPresented: $showCamera) {
-                CameraImagePicker { image in
-                    guard let image else { return }
-                    previewImage = image
-                    imageData = image.jpegData(compressionQuality: 0.85)
-                }
-            }
-            .onChange(of: selectedPhotoItem) { _, newValue in
-                guard let newValue else { return }
-                Task {
-                    if let data = try? await newValue.loadTransferable(type: Data.self), let uiImage = UIImage(data: data) {
-                        previewImage = uiImage
-                        imageData = data
+            .sheet(item: $pickerSource) { source in
+                SourceImagePicker(source: source.uiKitSourceType) { image in
+                    if let image {
+                        previewImage = image
+                        imageData = image.jpegData(compressionQuality: 0.85)
                     }
                 }
             }
@@ -119,7 +109,24 @@ public struct FoodPhotoAnalyzerView: View {
     }
 }
 
-private struct CameraImagePicker: UIViewControllerRepresentable {
+private enum ImagePickerSource: String, Identifiable {
+    case camera
+    case library
+
+    var id: String { rawValue }
+
+    var uiKitSourceType: UIImagePickerController.SourceType {
+        switch self {
+        case .camera:
+            return UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
+        case .library:
+            return .photoLibrary
+        }
+    }
+}
+
+private struct SourceImagePicker: UIViewControllerRepresentable {
+    let source: UIImagePickerController.SourceType
     let onImagePicked: (UIImage?) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -128,7 +135,7 @@ private struct CameraImagePicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
+        picker.sourceType = source
         picker.delegate = context.coordinator
         picker.allowsEditing = false
         return picker
