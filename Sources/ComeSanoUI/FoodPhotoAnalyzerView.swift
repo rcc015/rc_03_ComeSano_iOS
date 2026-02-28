@@ -93,6 +93,19 @@ public struct FoodPhotoAnalyzerView: View {
                     Section("Error") {
                         Text(errorMessage)
                             .foregroundStyle(.red)
+
+                        if let retryAfter = viewModel.retryAfterSeconds {
+                            Button {
+                                Task { await viewModel.retryLastAnalysis() }
+                            } label: {
+                                if retryAfter > 0 {
+                                    Text("Reintentar en \(retryAfter)s")
+                                } else {
+                                    Text("Reintentar ahora")
+                                }
+                            }
+                            .disabled(retryAfter > 0 || viewModel.isLoading)
+                        }
                     }
                 }
             }
