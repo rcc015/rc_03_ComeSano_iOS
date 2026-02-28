@@ -22,16 +22,25 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - `Sources/ComeSanoAI`: cliente OpenAI para analizar foto de comida/alacena.
 - `Sources/ComeSanoUI/FoodPhotoAnalyzerView.swift`: captura de foto y visualización de resultados.
 - `Sources/ComeSanoUI/FoodPhotoAnalyzerViewModel.swift`: orquestación UI -> IA.
+- `App/Sources/ComeSanoApp.swift`: app iOS real (SwiftUI + tabs).
 - `App/Config/Info.plist`: plantilla con llaves de permisos HealthKit.
+- `project.yml`: especificación XcodeGen para generar `ComeSano.xcodeproj`.
 - `Tests/ComeSanoCoreTests`: pruebas de negocio.
 
 ## Configuración rápida
 
-1. Core Data local:
+1. Proyecto iOS:
+   - Ejecuta `xcodegen generate`.
+   - Abre `ComeSano.xcodeproj`.
+   - Usa el esquema `ComeSanoApp`.
+2. OpenAI API key en ejecución:
+   - En Xcode: `Product > Scheme > Edit Scheme > Run > Environment Variables`.
+   - Agrega `OPENAI_API_KEY=<tu_api_key>`.
+3. Core Data local:
    - Inicializa `PersistenceController()` para almacenamiento local en el dispositivo.
-2. IA:
+4. IA:
    - OpenAI: `NutritionAIClientFactory.makeOpenAI(apiKey: \"...\", model: .gpt4point1)`
-3. Recomendado:
+5. Recomendado:
    - Guardar API keys en Keychain.
    - Confirmación manual de calorías estimadas por IA antes de guardar.
 
@@ -76,7 +85,7 @@ Cuando tengas Apple Developer habilitado, se puede migrar este contenedor a `NSP
 
 ## Siguiente fase sugerida
 
-1. Crear target iOS App y target Watch App en Xcode.
-2. Conectar `DashboardView` como pantalla inicial.
-3. Guardar ingestas reales y reemplazar `MockIntakeProvider`.
+1. Reemplazar `MockIntakeProvider` por persistencia real de comidas.
+2. Guardar resultados de `FoodPhotoAnalyzerView` en Core Data.
+3. Crear target Watch App y sincronizar recordatorios/comidas.
 4. Programar recordatorios de agua/comidas con `UserNotifications`.
