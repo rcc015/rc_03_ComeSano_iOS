@@ -9,7 +9,7 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - Proveedor HealthKit para calorías activas y basales.
 - Dashboard SwiftUI mínimo para visualizar progreso.
 - Persistencia local con CoreData.
-- Capa de IA multimodal desacoplada (OpenAI / Gemini).
+- Capa de IA multimodal con OpenAI.
 - Tests unitarios del motor de cálculo.
 
 ## Estructura
@@ -18,7 +18,7 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 - `Sources/ComeSanoHealthKit`: integración con HealthKit.
 - `Sources/ComeSanoUI`: `DashboardView` y `DashboardViewModel`.
 - `Sources/ComeSanoPersistence`: `NSPersistentContainer` y stores para alimentos/alacena/lista.
-- `Sources/ComeSanoAI`: clientes multimodales para analizar foto de comida/alacena.
+- `Sources/ComeSanoAI`: cliente OpenAI para analizar foto de comida/alacena.
 - `Tests/ComeSanoCoreTests`: pruebas de negocio.
 
 ## Configuración rápida
@@ -26,8 +26,7 @@ Base de la Semana 1 para una app de nutrición conectada con Apple Health.
 1. Core Data local:
    - Inicializa `PersistenceController()` para almacenamiento local en el dispositivo.
 2. IA:
-   - OpenAI: `NutritionAIClientFactory.make(provider: .openAI(apiKey: \"...\"))`
-   - Gemini: `NutritionAIClientFactory.make(provider: .gemini(apiKey: \"...\"))`
+   - OpenAI: `NutritionAIClientFactory.makeOpenAI(apiKey: \"...\", model: .gpt4point1)`
 3. Recomendado:
    - Guardar API keys en Keychain.
    - Confirmación manual de calorías estimadas por IA antes de guardar.
