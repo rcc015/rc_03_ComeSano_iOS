@@ -3,14 +3,11 @@ import CoreData
 import ComeSanoCore
 
 public final class PersistenceController: @unchecked Sendable {
-    public let container: NSPersistentCloudKitContainer
+    public let container: NSPersistentContainer
 
-    public init(
-        containerIdentifier: String,
-        inMemory: Bool = false
-    ) {
+    public init(inMemory: Bool = false) {
         let model = Self.makeManagedObjectModel()
-        container = NSPersistentCloudKitContainer(name: "ComeSanoData", managedObjectModel: model)
+        container = NSPersistentContainer(name: "ComeSanoData", managedObjectModel: model)
 
         guard let description = container.persistentStoreDescriptions.first else {
             fatalError("Missing persistent store description")
@@ -19,11 +16,6 @@ public final class PersistenceController: @unchecked Sendable {
         if inMemory {
             description.url = URL(fileURLWithPath: "/dev/null")
         }
-
-        let cloudKitOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: containerIdentifier)
-        description.cloudKitContainerOptions = cloudKitOptions
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
 
         container.loadPersistentStores { _, error in
             if let error {
