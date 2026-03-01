@@ -3,27 +3,137 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		031C9B6D98F5EDBE1644C0BC /* WatchDashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB3915E3EB3D97443DFAFD30 /* WatchDashboardViewModel.swift */; };
+		218105EE0C34343EA3B7A5BC /* WatchAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 772AD2A714DEBFF32C55F0E0 /* WatchAssets.xcassets */; };
+		28045AE9FB6184E5C201F22E /* ComeSanoPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 97FB2A100B6311482B3FA92A /* ComeSanoPersistence */; };
+		481EE51F4D78EB3568E9E57C /* WatchConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348E796AA68216528E9AA16F /* WatchConnector.swift */; };
+		4D176B45D073A2BA303B0516 /* UserProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6566A3303D7DF5866FA4716A /* UserProfileStore.swift */; };
+		5113FF2480623788585B76BE /* ComeSanoWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50759BDA6BE31B0C2C370DE /* ComeSanoWatchApp.swift */; };
+		55F28406417C52E87053B2B0 /* ReminderNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE975B194D2ACB6288DA964 /* ReminderNotificationManager.swift */; };
 		5FC36926ECB2403D7453C2D2 /* OpenAIKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */; };
+		779625B32B9CBE53E7B8FE21 /* FridgeInventoryScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F5FEABD364396D9082D49B9 /* FridgeInventoryScannerView.swift */; };
+		85757568015164EA0D7A04E5 /* ComeSanoWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 39BF5460C974E1A6F511F1DD /* ComeSanoWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		86A71B46CE0E2B1A7345F2A3 /* ComeSanoWatchExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6C6403905AB57688A1BC998D /* ComeSanoWatchExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8FBC173839403D6788639AD8 /* NutritionPlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9F0F4A8FD6E385CAA957B3 /* NutritionPlanEngine.swift */; };
 		9605CF6F4E0CA8B2AF808E6D /* ComeSanoUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4988B45FB968DD58960F6C45 /* ComeSanoUI */; };
+		97CA807EA56946B08CF88C08 /* PlanDailyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 794F2E782D16DA1B1C29F7EA /* PlanDailyView.swift */; };
 		99760E9CACEAB486A0627666 /* ComeSanoAI in Frameworks */ = {isa = PBXBuildFile; productRef = 07028C6E7AB66AFA1E5047F3 /* ComeSanoAI */; };
+		9BA5050B9CCA3B5CAE1A7634 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63BF0D251BE9071FB368F0C6 /* Assets.xcassets */; };
+		9CD1F829D04E03D5F0B10E63 /* DietaryProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE981FEB267FF0D845470853 /* DietaryProfileView.swift */; };
+		9D2F0FCF7856CB24BC83E42C /* ComeSanoWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 30A1AB1274D224313CFE596E /* ComeSanoWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A570215D6CA70D7A5B2ED6EA /* WatchConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348E796AA68216528E9AA16F /* WatchConnector.swift */; };
+		A81B2B3B79E70F094AF5A34B /* WatchDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2373D7DD31371779109BF35A /* WatchDashboardView.swift */; };
 		B1C929FF16E342433E83EAF8 /* ComeSanoCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA1298B37CDBB2F334E5C75D /* ComeSanoCore */; };
+		BC53B3A99C4CFF12B6DAE410 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 776BE8061D4C840C3684E57F /* ComeSanoHealthKit */; };
 		BD51CDB903AA0E7726A349B6 /* OpenAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */; };
+		BD555293AEB9E1BA2A22AD9C /* CalorieWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C69E2C16A13434EEF7EC06A1 /* CalorieWidget.swift */; };
 		C3778DC4E7350739690B9DB6 /* ComeSanoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */; };
+		C71A7E1CAB3122C86A973C98 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 608B234368EC7E92F0AC2856 /* ComeSanoHealthKit */; };
+		D6B753BA5B17C20B5B7D8CA9 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9AFB794856997F14BF942EB1 /* ComeSanoHealthKit */; };
+		F697A096FB4991977434255C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 40CB0352BF8D3C049B462D14 /* LaunchScreen.storyboard */; };
+		FFA398E1FA953C9559DE3601 /* ComeSanoCore in Frameworks */ = {isa = PBXBuildFile; productRef = 29778DB56A7393E9E659A18C /* ComeSanoCore */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0EA9BF28C8F020FF25CA123F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5DA09E9F866404605DDAEBF6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B861D510E188A657D598E1A1;
+			remoteInfo = ComeSanoWatchWidget;
+		};
+		913E6354C3FB45A29366CD15 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5DA09E9F866404605DDAEBF6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F465A03AE2B0DCD03CDFD807;
+			remoteInfo = ComeSanoWatchApp;
+		};
+		CB732F2EBC19B7E9A9AFFBA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5DA09E9F866404605DDAEBF6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 69C186F311AC318913FD8F59;
+			remoteInfo = ComeSanoWatchExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5FD0CAA1C36105E68866953E /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				9D2F0FCF7856CB24BC83E42C /* ComeSanoWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C6D9C1A9D55413002CF29BF5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				86A71B46CE0E2B1A7345F2A3 /* ComeSanoWatchExtension.appex in Embed Foundation Extensions */,
+				85757568015164EA0D7A04E5 /* ComeSanoWatchWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIKeychainStore.swift; sourceTree = "<group>"; };
-		0611176768BDF2142F932EC2 /* ComeSanoApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ComeSanoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0611176768BDF2142F932EC2 /* ComeSano.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ComeSano.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		07045EE595EB21439A7121D5 /* 03_ComeSano_iOS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 03_ComeSano_iOS; path = .; sourceTree = SOURCE_ROOT; };
 		1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAISettingsView.swift; sourceTree = "<group>"; };
+		2373D7DD31371779109BF35A /* WatchDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDashboardView.swift; sourceTree = "<group>"; };
+		2D9F0F4A8FD6E385CAA957B3 /* NutritionPlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPlanEngine.swift; sourceTree = "<group>"; };
+		2F5FEABD364396D9082D49B9 /* FridgeInventoryScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FridgeInventoryScannerView.swift; sourceTree = "<group>"; };
+		30A1AB1274D224313CFE596E /* ComeSanoWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ComeSanoWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		348E796AA68216528E9AA16F /* WatchConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnector.swift; sourceTree = "<group>"; };
+		39BF5460C974E1A6F511F1DD /* ComeSanoWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ComeSanoWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		40CB0352BF8D3C049B462D14 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		5039EB7AC32071F0F99BF9EC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5CE975B194D2ACB6288DA964 /* ReminderNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderNotificationManager.swift; sourceTree = "<group>"; };
+		63BF0D251BE9071FB368F0C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6566A3303D7DF5866FA4716A /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
+		6C6403905AB57688A1BC998D /* ComeSanoWatchExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ComeSanoWatchExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E95B43DA0848D4DB83AD026 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		772AD2A714DEBFF32C55F0E0 /* WatchAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WatchAssets.xcassets; sourceTree = "<group>"; };
+		794F2E782D16DA1B1C29F7EA /* PlanDailyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDailyView.swift; sourceTree = "<group>"; };
 		95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComeSanoApp.swift; sourceTree = "<group>"; };
+		C69E2C16A13434EEF7EC06A1 /* CalorieWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieWidget.swift; sourceTree = "<group>"; };
+		D50759BDA6BE31B0C2C370DE /* ComeSanoWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComeSanoWatchApp.swift; sourceTree = "<group>"; };
+		DB3915E3EB3D97443DFAFD30 /* WatchDashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDashboardViewModel.swift; sourceTree = "<group>"; };
+		DE981FEB267FF0D845470853 /* DietaryProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietaryProfileView.swift; sourceTree = "<group>"; };
+		EC47A1082B8F60BDF969C8E6 /* ComeSanoWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ComeSanoWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1B0AE91C59E358536C81268A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6B753BA5B17C20B5B7D8CA9 /* ComeSanoHealthKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		29AF8B6C1E9EFAEE27D99045 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FFA398E1FA953C9559DE3601 /* ComeSanoCore in Frameworks */,
+				BC53B3A99C4CFF12B6DAE410 /* ComeSanoHealthKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C99E3D0423C9D5E2765806E0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -31,6 +141,8 @@
 				B1C929FF16E342433E83EAF8 /* ComeSanoCore in Frameworks */,
 				99760E9CACEAB486A0627666 /* ComeSanoAI in Frameworks */,
 				9605CF6F4E0CA8B2AF808E6D /* ComeSanoUI in Frameworks */,
+				28045AE9FB6184E5C201F22E /* ComeSanoPersistence in Frameworks */,
+				C71A7E1CAB3122C86A973C98 /* ComeSanoHealthKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -40,27 +152,81 @@
 		1799A50398DE3DD9C89686C1 = {
 			isa = PBXGroup;
 			children = (
+				2EFA89DD9F26442CA78B36C2 /* App */,
+				25C06B438D9992DB2143D398 /* Connectivity */,
 				CA610E7AAA480A1628AD0298 /* Packages */,
+				6F2F777440BBF3421B08CADF /* Resources */,
 				45D0BC5A2B120DF40DDFEB04 /* Sources */,
+				F6128DC6909F5D309A8F6C05 /* Sources */,
+				97F9DE5FEC7DFAC0F6617F4F /* Widgets */,
 				A01D5DA3DD0084B9917002AC /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		25C06B438D9992DB2143D398 /* Connectivity */ = {
+			isa = PBXGroup;
+			children = (
+				348E796AA68216528E9AA16F /* WatchConnector.swift */,
+			);
+			name = Connectivity;
+			path = Shared/Connectivity;
+			sourceTree = "<group>";
+		};
+		2EFA89DD9F26442CA78B36C2 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				5039EB7AC32071F0F99BF9EC /* Info.plist */,
+				772AD2A714DEBFF32C55F0E0 /* WatchAssets.xcassets */,
+			);
+			name = App;
+			path = Watch/App;
 			sourceTree = "<group>";
 		};
 		45D0BC5A2B120DF40DDFEB04 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				95F28E454886CC9DED6CD930 /* ComeSanoApp.swift */,
+				DE981FEB267FF0D845470853 /* DietaryProfileView.swift */,
+				2F5FEABD364396D9082D49B9 /* FridgeInventoryScannerView.swift */,
+				2D9F0F4A8FD6E385CAA957B3 /* NutritionPlanEngine.swift */,
 				002119DD7DE1AA8796C5AADF /* OpenAIKeychainStore.swift */,
 				1A758C9C16F98BBCFB4DC253 /* OpenAISettingsView.swift */,
+				794F2E782D16DA1B1C29F7EA /* PlanDailyView.swift */,
+				5CE975B194D2ACB6288DA964 /* ReminderNotificationManager.swift */,
+				6566A3303D7DF5866FA4716A /* UserProfileStore.swift */,
 			);
 			name = Sources;
 			path = App/Sources;
 			sourceTree = "<group>";
 		};
+		6F2F777440BBF3421B08CADF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				63BF0D251BE9071FB368F0C6 /* Assets.xcassets */,
+				40CB0352BF8D3C049B462D14 /* LaunchScreen.storyboard */,
+			);
+			name = Resources;
+			path = App/Resources;
+			sourceTree = "<group>";
+		};
+		97F9DE5FEC7DFAC0F6617F4F /* Widgets */ = {
+			isa = PBXGroup;
+			children = (
+				C69E2C16A13434EEF7EC06A1 /* CalorieWidget.swift */,
+				EC47A1082B8F60BDF969C8E6 /* ComeSanoWidget.entitlements */,
+				6E95B43DA0848D4DB83AD026 /* Info.plist */,
+			);
+			name = Widgets;
+			path = Watch/Widgets;
+			sourceTree = "<group>";
+		};
 		A01D5DA3DD0084B9917002AC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0611176768BDF2142F932EC2 /* ComeSanoApp.app */,
+				0611176768BDF2142F932EC2 /* ComeSano.app */,
+				30A1AB1274D224313CFE596E /* ComeSanoWatch.app */,
+				6C6403905AB57688A1BC998D /* ComeSanoWatchExtension.appex */,
+				39BF5460C974E1A6F511F1DD /* ComeSanoWatchWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -73,6 +239,17 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		F6128DC6909F5D309A8F6C05 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D50759BDA6BE31B0C2C370DE /* ComeSanoWatchApp.swift */,
+				2373D7DD31371779109BF35A /* WatchDashboardView.swift */,
+				DB3915E3EB3D97443DFAFD30 /* WatchDashboardViewModel.swift */,
+			);
+			name = Sources;
+			path = Watch/Extension/Sources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -81,21 +258,85 @@
 			buildConfigurationList = CFF200CEA87CD3B68CBF7E23 /* Build configuration list for PBXNativeTarget "ComeSanoApp" */;
 			buildPhases = (
 				0140A3C3C7AA47F20106CEB0 /* Sources */,
+				E3B611E65F248A0F2894E388 /* Resources */,
 				C99E3D0423C9D5E2765806E0 /* Frameworks */,
+				5FD0CAA1C36105E68866953E /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				EDD0C12D40CDBAC97F07FE12 /* PBXTargetDependency */,
 			);
 			name = ComeSanoApp;
 			packageProductDependencies = (
 				AA1298B37CDBB2F334E5C75D /* ComeSanoCore */,
 				07028C6E7AB66AFA1E5047F3 /* ComeSanoAI */,
 				4988B45FB968DD58960F6C45 /* ComeSanoUI */,
+				97FB2A100B6311482B3FA92A /* ComeSanoPersistence */,
+				608B234368EC7E92F0AC2856 /* ComeSanoHealthKit */,
 			);
 			productName = ComeSanoApp;
-			productReference = 0611176768BDF2142F932EC2 /* ComeSanoApp.app */;
+			productReference = 0611176768BDF2142F932EC2 /* ComeSano.app */;
 			productType = "com.apple.product-type.application";
+		};
+		69C186F311AC318913FD8F59 /* ComeSanoWatchExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9DD9088BE107690E749F1DCC /* Build configuration list for PBXNativeTarget "ComeSanoWatchExtension" */;
+			buildPhases = (
+				49630098F3D1753569DC16D1 /* Sources */,
+				29AF8B6C1E9EFAEE27D99045 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ComeSanoWatchExtension;
+			packageProductDependencies = (
+				29778DB56A7393E9E659A18C /* ComeSanoCore */,
+				776BE8061D4C840C3684E57F /* ComeSanoHealthKit */,
+			);
+			productName = ComeSanoWatchExtension;
+			productReference = 6C6403905AB57688A1BC998D /* ComeSanoWatchExtension.appex */;
+			productType = "com.apple.product-type.watchkit2-extension";
+		};
+		B861D510E188A657D598E1A1 /* ComeSanoWatchWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 044BC940EB1E5ED8D9C00A33 /* Build configuration list for PBXNativeTarget "ComeSanoWatchWidget" */;
+			buildPhases = (
+				208B210D03BFAC070E0ED56E /* Sources */,
+				1B0AE91C59E358536C81268A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ComeSanoWatchWidget;
+			packageProductDependencies = (
+				9AFB794856997F14BF942EB1 /* ComeSanoHealthKit */,
+			);
+			productName = ComeSanoWatchWidget;
+			productReference = 39BF5460C974E1A6F511F1DD /* ComeSanoWatchWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F465A03AE2B0DCD03CDFD807 /* ComeSanoWatchApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5BD319A68DFD93DE2495DCE6 /* Build configuration list for PBXNativeTarget "ComeSanoWatchApp" */;
+			buildPhases = (
+				51623F3C57192F64ED1412F9 /* Resources */,
+				C6D9C1A9D55413002CF29BF5 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9CFD969D913C99F5839CFE9F /* PBXTargetDependency */,
+				5BC5FEE43F2BE0A369977E93 /* PBXTargetDependency */,
+			);
+			name = ComeSanoWatchApp;
+			packageProductDependencies = (
+			);
+			productName = ComeSanoWatchApp;
+			productReference = 30A1AB1274D224313CFE596E /* ComeSanoWatch.app */;
+			productType = "com.apple.product-type.application.watchapp2";
 		};
 /* End PBXNativeTarget section */
 
@@ -107,6 +348,15 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					10F1684D8F8D5754A2E3E9FE = {
+						ProvisioningStyle = Automatic;
+					};
+					69C186F311AC318913FD8F59 = {
+						ProvisioningStyle = Automatic;
+					};
+					B861D510E188A657D598E1A1 = {
+						ProvisioningStyle = Automatic;
+					};
+					F465A03AE2B0DCD03CDFD807 = {
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -124,14 +374,36 @@
 			packageReferences = (
 				518FCE2FC15ABE1764BA06F0 /* XCLocalSwiftPackageReference "." */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				10F1684D8F8D5754A2E3E9FE /* ComeSanoApp */,
+				F465A03AE2B0DCD03CDFD807 /* ComeSanoWatchApp */,
+				69C186F311AC318913FD8F59 /* ComeSanoWatchExtension */,
+				B861D510E188A657D598E1A1 /* ComeSanoWatchWidget */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		51623F3C57192F64ED1412F9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				218105EE0C34343EA3B7A5BC /* WatchAssets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E3B611E65F248A0F2894E388 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9BA5050B9CCA3B5CAE1A7634 /* Assets.xcassets in Resources */,
+				F697A096FB4991977434255C /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0140A3C3C7AA47F20106CEB0 /* Sources */ = {
@@ -139,21 +411,132 @@
 			buildActionMask = 2147483647;
 			files = (
 				C3778DC4E7350739690B9DB6 /* ComeSanoApp.swift in Sources */,
+				9CD1F829D04E03D5F0B10E63 /* DietaryProfileView.swift in Sources */,
+				779625B32B9CBE53E7B8FE21 /* FridgeInventoryScannerView.swift in Sources */,
+				8FBC173839403D6788639AD8 /* NutritionPlanEngine.swift in Sources */,
 				5FC36926ECB2403D7453C2D2 /* OpenAIKeychainStore.swift in Sources */,
 				BD51CDB903AA0E7726A349B6 /* OpenAISettingsView.swift in Sources */,
+				97CA807EA56946B08CF88C08 /* PlanDailyView.swift in Sources */,
+				55F28406417C52E87053B2B0 /* ReminderNotificationManager.swift in Sources */,
+				4D176B45D073A2BA303B0516 /* UserProfileStore.swift in Sources */,
+				481EE51F4D78EB3568E9E57C /* WatchConnector.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		208B210D03BFAC070E0ED56E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BD555293AEB9E1BA2A22AD9C /* CalorieWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		49630098F3D1753569DC16D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5113FF2480623788585B76BE /* ComeSanoWatchApp.swift in Sources */,
+				A570215D6CA70D7A5B2ED6EA /* WatchConnector.swift in Sources */,
+				A81B2B3B79E70F094AF5A34B /* WatchDashboardView.swift in Sources */,
+				031C9B6D98F5EDBE1644C0BC /* WatchDashboardViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		5BC5FEE43F2BE0A369977E93 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B861D510E188A657D598E1A1 /* ComeSanoWatchWidget */;
+			targetProxy = 0EA9BF28C8F020FF25CA123F /* PBXContainerItemProxy */;
+		};
+		9CFD969D913C99F5839CFE9F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 69C186F311AC318913FD8F59 /* ComeSanoWatchExtension */;
+			targetProxy = CB732F2EBC19B7E9A9AFFBA3 /* PBXContainerItemProxy */;
+		};
+		EDD0C12D40CDBAC97F07FE12 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F465A03AE2B0DCD03CDFD807 /* ComeSanoWatchApp */;
+			targetProxy = 913E6354C3FB45A29366CD15 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0D01E6B4B2A876CBF3FB03CC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/App/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp;
+				PRODUCT_NAME = ComeSanoWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		2E310331282DF81A69205EBA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Watch/Widgets/ComeSanoWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/Widgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp.widget;
+				PRODUCT_NAME = ComeSanoWatchWidget;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		62825A5C39BA480D184CA269 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				CODE_SIGN_ENTITLEMENTS = Watch/Extension/ComeSanoWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/Extension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp.extension;
+				PRODUCT_NAME = ComeSanoWatchExtension;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		64BACA0E21538A597E947ACF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/Config/ComeSano.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
 				INFOPLIST_FILE = App/Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -164,6 +547,53 @@
 				PRODUCT_NAME = ComeSano;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6A5BD73CF2D144B1D57F8BFE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Watch/Widgets/ComeSanoWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/Widgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp.widget;
+				PRODUCT_NAME = ComeSanoWatchWidget;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		74840ADDC9AF9DE34450A341 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				CODE_SIGN_ENTITLEMENTS = Watch/Extension/ComeSanoWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/Extension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp.extension;
+				PRODUCT_NAME = ComeSanoWatchExtension;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -217,10 +647,10 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -281,20 +711,40 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
+		};
+		CF23F96B30E20B5F7987423F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
+				INFOPLIST_FILE = Watch/App/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.watchkitapp;
+				PRODUCT_NAME = ComeSanoWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
 		};
 		F094DCFD583D3298A2B52B94 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/Config/ComeSano.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CNN6VQ3H8R;
 				INFOPLIST_FILE = App/Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -311,11 +761,38 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		044BC940EB1E5ED8D9C00A33 /* Build configuration list for PBXNativeTarget "ComeSanoWatchWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A5BD73CF2D144B1D57F8BFE /* Debug */,
+				2E310331282DF81A69205EBA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		54B1DE3E320D43E8336D39D8 /* Build configuration list for PBXProject "ComeSano" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C1199EDB65102FCA47F40A41 /* Debug */,
 				B565AF45E09053AB2343AA30 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5BD319A68DFD93DE2495DCE6 /* Build configuration list for PBXNativeTarget "ComeSanoWatchApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D01E6B4B2A876CBF3FB03CC /* Debug */,
+				CF23F96B30E20B5F7987423F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9DD9088BE107690E749F1DCC /* Build configuration list for PBXNativeTarget "ComeSanoWatchExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				74840ADDC9AF9DE34450A341 /* Debug */,
+				62825A5C39BA480D184CA269 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -343,9 +820,29 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = ComeSanoAI;
 		};
+		29778DB56A7393E9E659A18C /* ComeSanoCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ComeSanoCore;
+		};
 		4988B45FB968DD58960F6C45 /* ComeSanoUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ComeSanoUI;
+		};
+		608B234368EC7E92F0AC2856 /* ComeSanoHealthKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ComeSanoHealthKit;
+		};
+		776BE8061D4C840C3684E57F /* ComeSanoHealthKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ComeSanoHealthKit;
+		};
+		97FB2A100B6311482B3FA92A /* ComeSanoPersistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ComeSanoPersistence;
+		};
+		9AFB794856997F14BF942EB1 /* ComeSanoHealthKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ComeSanoHealthKit;
 		};
 		AA1298B37CDBB2F334E5C75D /* ComeSanoCore */ = {
 			isa = XCSwiftPackageProductDependency;

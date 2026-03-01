@@ -32,23 +32,26 @@ public struct FoodItem: Codable, Sendable, Identifiable {
     public var servingDescription: String
     public var nutrition: NutritionPerServing
     public var source: String
+    public var loggedAt: Date?
 
     public init(
         id: UUID = UUID(),
         name: String,
         servingDescription: String,
         nutrition: NutritionPerServing,
-        source: String
+        source: String,
+        loggedAt: Date? = nil
     ) {
         self.id = id
         self.name = name
         self.servingDescription = servingDescription
         self.nutrition = nutrition
         self.source = source
+        self.loggedAt = loggedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, servingDescription, nutrition, source
+        case id, name, servingDescription, nutrition, source, loggedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -58,6 +61,7 @@ public struct FoodItem: Codable, Sendable, Identifiable {
         servingDescription = try container.decode(String.self, forKey: .servingDescription)
         nutrition = try container.decode(NutritionPerServing.self, forKey: .nutrition)
         source = try container.decodeIfPresent(String.self, forKey: .source) ?? "ai"
+        loggedAt = try container.decodeIfPresent(Date.self, forKey: .loggedAt)
     }
 }
 
@@ -86,6 +90,7 @@ public struct PantryItem: Codable, Sendable, Identifiable {
 public struct ShoppingListItem: Codable, Sendable, Identifiable {
     public var id: UUID
     public var name: String
+    public var category: String
     public var quantity: Double
     public var unit: String
     public var isPurchased: Bool
@@ -93,25 +98,28 @@ public struct ShoppingListItem: Codable, Sendable, Identifiable {
     public init(
         id: UUID = UUID(),
         name: String,
+        category: String = "Otros",
         quantity: Double,
         unit: String,
         isPurchased: Bool = false
     ) {
         self.id = id
         self.name = name
+        self.category = category
         self.quantity = quantity
         self.unit = unit
         self.isPurchased = isPurchased
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, quantity, unit, isPurchased
+        case id, name, category, quantity, unit, isPurchased
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         name = try container.decode(String.self, forKey: .name)
+        category = try container.decodeIfPresent(String.self, forKey: .category) ?? "Otros"
         quantity = try container.decodeIfPresent(Double.self, forKey: .quantity) ?? 1
         unit = try container.decodeIfPresent(String.self, forKey: .unit) ?? "pieza"
         isPurchased = try container.decodeIfPresent(Bool.self, forKey: .isPurchased) ?? false

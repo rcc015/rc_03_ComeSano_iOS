@@ -20,6 +20,48 @@
                ReferencedContainer = "container:ComeSano.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F465A03AE2B0DCD03CDFD807"
+               BuildableName = "ComeSanoWatch.app"
+               BlueprintName = "ComeSanoWatchApp"
+               ReferencedContainer = "container:ComeSano.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "69C186F311AC318913FD8F59"
+               BuildableName = "ComeSanoWatchExtension.appex"
+               BlueprintName = "ComeSanoWatchExtension"
+               ReferencedContainer = "container:ComeSano.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B861D510E188A657D598E1A1"
+               BuildableName = "ComeSanoWatchWidget.appex"
+               BlueprintName = "ComeSanoWatchWidget"
+               ReferencedContainer = "container:ComeSano.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

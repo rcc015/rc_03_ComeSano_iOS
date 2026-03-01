@@ -5,11 +5,12 @@ import ComeSanoCore
 public final class DashboardViewModel: ObservableObject {
     @Published public private(set) var today: DailyCalorieSnapshot?
     @Published public private(set) var weekly: WeeklyProgress?
+    @Published public private(set) var weekSnapshots: [DailyCalorieSnapshot] = []
     @Published public private(set) var errorMessage: String?
 
     private let burnProvider: DailyCalorieBurnProvider
     private let intakeProvider: DailyIntakeProvider
-    private let profile: UserProfile
+    private var profile: UserProfile
     private let calendar: Calendar
 
     public init(
@@ -26,25 +27,53 @@ public final class DashboardViewModel: ObservableObject {
 
     public func refresh(referenceDate: Date = .now) async {
         do {
-            let consumed = try await intakeProvider.fetchConsumedCalories(for: referenceDate)
-            let burned = try await burnProvider.fetchBurnedCalories(for: referenceDate)
-            let todaySnapshot = DailyCalorieSnapshot(
-                date: referenceDate,
-                consumedKcal: consumed,
-                activeBurnedKcal: burned.active,
-                basalBurnedKcal: burned.basal,
-                targetKcal: profile.dailyCalorieTarget
-            )
-
-            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: referenceDate)?.start ?? referenceDate
-            let weeklyProgress = CalorieMath.weeklyProgress(from: [todaySnapshot], weekStart: startOfWeek)
+            let startOfWeek = startOfWeekMonday(for: referenceDate)
+            let snapshots = try await makeWeekSnapshots(startOfWeek: startOfWeek)
+            let weeklyProgress = CalorieMath.weeklyProgress(from: snapshots, weekStart: startOfWeek)
+            let selectedDay = calendar.startOfDay(for: referenceDate)
+            let todaySnapshot = snapshots.first { calendar.isDate($0.date, inSameDayAs: selectedDay) } ?? snapshots.last
 
             today = todaySnapshot
             weekly = weeklyProgress
+            weekSnapshots = snapshots
             errorMessage = nil
         } catch {
             errorMessage = "No se pudo leer la información de calorías: \(error.localizedDescription)"
         }
+    }
+
+    public func updateProfile(_ updatedProfile: UserProfile) {
+        profile = updatedProfile
+    }
+
+    private func startOfWeekMonday(for date: Date) -> Date {
+        let startOfDay = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: startOfDay)
+        // Sunday = 1 ... Saturday = 7 -> Monday-based offset (Mon=0 ... Sun=6)
+        let mondayOffset = (weekday + 5) % 7
+        return calendar.date(byAdding: .day, value: -mondayOffset, to: startOfDay) ?? startOfDay
+    }
+
+    private func makeWeekSnapshots(startOfWeek: Date) async throws -> [DailyCalorieSnapshot] {
+        var snapshots: [DailyCalorieSnapshot] = []
+        snapshots.reserveCapacity(7)
+
+        for offset in 0..<7 {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { continue }
+            let consumed = try await intakeProvider.fetchConsumedCalories(for: day)
+            let burned = try await burnProvider.fetchBurnedCalories(for: day)
+            snapshots.append(
+                DailyCalorieSnapshot(
+                    date: day,
+                    consumedKcal: consumed,
+                    activeBurnedKcal: burned.active,
+                    basalBurnedKcal: burned.basal,
+                    targetKcal: profile.dailyCalorieTarget
+                )
+            )
+        }
+
+        return snapshots
     }
 }
 

@@ -11,6 +11,7 @@ public struct FoodPhotoAnalyzerView: View {
     @State private var previewImage: UIImage?
     @State private var pickerSource: ImagePickerSource?
     @State private var userInstruction = ""
+    @State private var showSaveConfirmation = false
 
     public init(viewModel: FoodPhotoAnalyzerViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -74,6 +75,21 @@ public struct FoodPhotoAnalyzerView: View {
                         }
                     }
 
+                    Section {
+                        Button {
+                            showSaveConfirmation = true
+                        } label: {
+                            if viewModel.isSaving {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Text("Guardar comida detectada")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .disabled(result.foodItems.isEmpty || viewModel.isSaving || viewModel.isLoading)
+                    }
+
                     if !result.shoppingList.isEmpty {
                         Section("Lista de súper sugerida") {
                             ForEach(result.shoppingList) { item in
@@ -86,6 +102,20 @@ public struct FoodPhotoAnalyzerView: View {
                         Section("Notas") {
                             Text(result.notes)
                         }
+                    }
+                }
+
+                if let saveMessage = viewModel.saveMessage {
+                    Section("Guardado") {
+                        Text(saveMessage)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                if let saveError = viewModel.saveErrorMessage {
+                    Section("Error al guardar") {
+                        Text(saveError)
+                            .foregroundStyle(.red)
                     }
                 }
 
@@ -118,6 +148,18 @@ public struct FoodPhotoAnalyzerView: View {
                     }
                 }
             }
+            .confirmationDialog("¿Guardar esta comida?", isPresented: $showSaveConfirmation, titleVisibility: .visible) {
+                Button("Guardar") {
+                    Task {
+                        await viewModel.saveCurrentFoodItems()
+                    }
+                }
+                Button("Cancelar", role: .cancel) {}
+            } message: {
+                if let result = viewModel.result {
+                    Text("Se guardarán \(result.foodItems.count) alimento(s) detectados.")
+                }
+            }
         }
     }
 }
@@ -128,6 +170,7 @@ private enum ImagePickerSource: String, Identifiable {
 
     var id: String { rawValue }
 
+    @MainActor
     var uiKitSourceType: UIImagePickerController.SourceType {
         switch self {
         case .camera:

@@ -4,7 +4,19 @@ import ComeSanoCore
 #if canImport(HealthKit)
 import HealthKit
 
-public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEnergyWriter {
+public struct HealthBodyMetrics: Sendable {
+    public let weightKG: Double?
+    public let heightCM: Double?
+    public let ageYears: Int?
+
+    public init(weightKG: Double?, heightCM: Double?, ageYears: Int?) {
+        self.weightKG = weightKG
+        self.heightCM = heightCM
+        self.ageYears = ageYears
+    }
+}
+
+public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DailyIntakeProvider, DietaryEnergyWriter {
     private let healthStore: HKHealthStore
 
     public init(healthStore: HKHealthStore = HKHealthStore()) {
@@ -13,8 +25,12 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEne
 
     public func requestAuthorization() async throws {
         let readTypes: Set<HKObjectType> = [
+            HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.activeEnergyBurned),
-            HKQuantityType(.basalEnergyBurned)
+            HKQuantityType(.basalEnergyBurned),
+            HKQuantityType(.bodyMass),
+            HKQuantityType(.height),
+            HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!
         ]
 
         let writeTypes: Set<HKSampleType> = [
@@ -28,6 +44,10 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEne
         async let active = sumQuantity(for: .activeEnergyBurned, on: date)
         async let basal = sumQuantity(for: .basalEnergyBurned, on: date)
         return try await (active, basal)
+    }
+
+    public func fetchConsumedCalories(for date: Date) async throws -> Double {
+        try await sumQuantity(for: .dietaryEnergyConsumed, on: date)
     }
 
     public func saveDietaryEnergy(kilocalories: Double, at date: Date) async throws {
@@ -48,6 +68,16 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEne
                 }
             }
         }
+    }
+
+    public func fetchBodyMetrics() async -> HealthBodyMetrics {
+        async let weight = latestQuantity(for: .bodyMass, unit: .gramUnit(with: .kilo))
+        async let height = latestQuantity(for: .height, unit: .meterUnit(with: .centi))
+        let age = fetchAgeYears()
+
+        let weightValue = await weight
+        let heightValue = await height
+        return HealthBodyMetrics(weightKG: weightValue, heightCM: heightValue, ageYears: age)
     }
 
     private func sumQuantity(for identifier: HKQuantityTypeIdentifier, on date: Date) async throws -> Double {
@@ -77,11 +107,37 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEne
             healthStore.execute(query)
         }
     }
+
+    private func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
+        await withCheckedContinuation { continuation in
+            let quantityType = HKQuantityType(identifier)
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: nil,
+                limit: 1,
+                sortDescriptors: [sort]
+            ) { _, samples, _ in
+                guard let sample = samples?.first as? HKQuantitySample else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: sample.quantity.doubleValue(for: unit))
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchAgeYears() -> Int? {
+        guard let components = try? healthStore.dateOfBirthComponents() else { return nil }
+        guard let birthDate = Calendar.current.date(from: components) else { return nil }
+        return Calendar.current.dateComponents([.year], from: birthDate, to: .now).year
+    }
 }
 
 #else
 
-public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEnergyWriter {
+public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DailyIntakeProvider, DietaryEnergyWriter {
     public init() {}
 
     public func requestAuthorization() async throws {}
@@ -91,9 +147,18 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DietaryEne
         return (active: 0, basal: 0)
     }
 
+    public func fetchConsumedCalories(for date: Date) async throws -> Double {
+        _ = date
+        return 0
+    }
+
     public func saveDietaryEnergy(kilocalories: Double, at date: Date) async throws {
         _ = kilocalories
         _ = date
+    }
+
+    public func fetchBodyMetrics() async -> HealthBodyMetrics {
+        HealthBodyMetrics(weightKG: nil, heightCM: nil, ageYears: nil)
     }
 }
 

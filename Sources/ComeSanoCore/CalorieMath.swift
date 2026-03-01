@@ -9,8 +9,8 @@ public enum CalorieMath {
         let net = snapshots.reduce(0) { $0 + $1.netKcal } / Double(snapshots.count)
         let delta = snapshots.reduce(0) { $0 + $1.targetDeltaKcal } / Double(snapshots.count)
 
-        // 100 means the user is on target; every 100 kcal away from target reduces score by 10 points.
-        let score = max(0, 100 - abs(delta) / 10)
+        // 100 means a balanced day (intake ~= real burn). Every 100 kcal net deviation reduces score by 10.
+        let score = max(0, 100 - abs(net) / 10)
 
         return WeeklyProgress(
             weekStart: weekStart,

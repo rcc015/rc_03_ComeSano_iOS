@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 import ComeSanoCore
 
-public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore {
+public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, DailyIntakeProvider {
     private let controller: PersistenceController
 
     public init(controller: PersistenceController) {
@@ -24,6 +24,7 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore {
                 record.carbsGrams = item.nutrition.carbsGrams
                 record.fatGrams = item.nutrition.fatGrams
                 record.source = item.source
+                record.loggedAt = item.loggedAt ?? .now
             }
 
             try context.save()
@@ -46,9 +47,36 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore {
                         carbsGrams: $0.carbsGrams,
                         fatGrams: $0.fatGrams
                     ),
-                    source: $0.source
+                    source: $0.source,
+                    loggedAt: $0.loggedAt
                 )
             }
+        }
+    }
+
+    public func fetchConsumedCalories(for date: Date) async throws -> Double {
+        let context = controller.container.newBackgroundContext()
+        return try await context.perform {
+            let calendar = Calendar.current
+            let start = calendar.startOfDay(for: date)
+            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+
+            let request = NSFetchRequest<NSDictionary>(entityName: "FoodRecord")
+            request.resultType = .dictionaryResultType
+            request.predicate = NSPredicate(format: "loggedAt >= %@ AND loggedAt < %@", start as NSDate, end as NSDate)
+
+            let sumExpression = NSExpressionDescription()
+            sumExpression.name = "sumCalories"
+            sumExpression.expression = NSExpression(
+                forFunction: "sum:",
+                arguments: [NSExpression(forKeyPath: "calories")]
+            )
+            sumExpression.expressionResultType = .doubleAttributeType
+            request.propertiesToFetch = [sumExpression]
+
+            let result = try context.fetch(request)
+            let total = result.first?["sumCalories"] as? NSNumber
+            return total?.doubleValue ?? 0
         }
     }
 
@@ -96,6 +124,7 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore {
                 let record = ShoppingListRecord(context: context)
                 record.id = item.id
                 record.name = item.name
+                record.category = item.category
                 record.quantity = item.quantity
                 record.unit = item.unit
                 record.isPurchased = item.isPurchased
@@ -114,6 +143,7 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore {
                 ShoppingListItem(
                     id: $0.id,
                     name: $0.name,
+                    category: $0.category ?? "Otros",
                     quantity: $0.quantity,
                     unit: $0.unit,
                     isPurchased: $0.isPurchased

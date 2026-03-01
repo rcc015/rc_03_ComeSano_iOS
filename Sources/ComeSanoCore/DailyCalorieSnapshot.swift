@@ -24,4 +24,5 @@ public struct DailyCalorieSnapshot: Sendable {
     public var totalBurnedKcal: Double { activeBurnedKcal + basalBurnedKcal }
     public var netKcal: Double { consumedKcal - totalBurnedKcal }
     public var targetDeltaKcal: Double { consumedKcal - targetKcal }
+    public var dailyAdherenceScore: Double { max(0, 100 - abs(netKcal) / 10) }
 }

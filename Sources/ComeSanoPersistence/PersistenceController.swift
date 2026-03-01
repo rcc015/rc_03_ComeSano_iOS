@@ -41,7 +41,8 @@ public final class PersistenceController: @unchecked Sendable {
             makeAttribute(name: "proteinGrams", type: .doubleAttributeType),
             makeAttribute(name: "carbsGrams", type: .doubleAttributeType),
             makeAttribute(name: "fatGrams", type: .doubleAttributeType),
-            makeAttribute(name: "source", type: .stringAttributeType)
+            makeAttribute(name: "source", type: .stringAttributeType),
+            makeAttribute(name: "loggedAt", type: .dateAttributeType, optional: true)
         ]
 
         let pantryEntity = NSEntityDescription()
@@ -61,6 +62,7 @@ public final class PersistenceController: @unchecked Sendable {
         shoppingEntity.properties = [
             makeAttribute(name: "id", type: .UUIDAttributeType),
             makeAttribute(name: "name", type: .stringAttributeType),
+            makeAttribute(name: "category", type: .stringAttributeType, optional: true),
             makeAttribute(name: "quantity", type: .doubleAttributeType),
             makeAttribute(name: "unit", type: .stringAttributeType),
             makeAttribute(name: "isPurchased", type: .booleanAttributeType)
@@ -89,6 +91,7 @@ final class FoodRecord: NSManagedObject {
     @NSManaged var carbsGrams: Double
     @NSManaged var fatGrams: Double
     @NSManaged var source: String
+    @NSManaged var loggedAt: Date?
 }
 
 @objc(PantryRecord)
@@ -104,6 +107,7 @@ final class PantryRecord: NSManagedObject {
 final class ShoppingListRecord: NSManagedObject {
     @NSManaged var id: UUID
     @NSManaged var name: String
+    @NSManaged var category: String?
     @NSManaged var quantity: Double
     @NSManaged var unit: String
     @NSManaged var isPurchased: Bool

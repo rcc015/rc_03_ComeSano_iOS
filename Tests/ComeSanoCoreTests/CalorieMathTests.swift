@@ -12,7 +12,7 @@ final class CalorieMathTests: XCTestCase {
 
         XCTAssertEqual(result.averageNetKcal, 250, accuracy: 0.001)
         XCTAssertEqual(result.averageTargetDeltaKcal, 0, accuracy: 0.001)
-        XCTAssertEqual(result.adherenceScore, 100, accuracy: 0.001)
+        XCTAssertEqual(result.adherenceScore, 75, accuracy: 0.001)
     }
 
     func testWeeklyProgressDropsAdherenceWhenFarFromTarget() {
@@ -23,5 +23,20 @@ final class CalorieMathTests: XCTestCase {
         let result = CalorieMath.weeklyProgress(from: snapshots, weekStart: .now)
 
         XCTAssertLessThan(result.adherenceScore, 10)
+    }
+
+    func testWeeklyProgressAdherenceUsesRealBurnAndConsumedEnergy() {
+        let balanced = [
+            DailyCalorieSnapshot(date: .now, consumedKcal: 2100, activeBurnedKcal: 500, basalBurnedKcal: 1600, targetKcal: 2100)
+        ]
+        let lowBurn = [
+            DailyCalorieSnapshot(date: .now, consumedKcal: 2100, activeBurnedKcal: 300, basalBurnedKcal: 1200, targetKcal: 2100)
+        ]
+
+        let balancedScore = CalorieMath.weeklyProgress(from: balanced, weekStart: .now).adherenceScore
+        let lowBurnScore = CalorieMath.weeklyProgress(from: lowBurn, weekStart: .now).adherenceScore
+
+        XCTAssertEqual(balancedScore, 100, accuracy: 0.001)
+        XCTAssertLessThan(lowBurnScore, balancedScore)
     }
 }

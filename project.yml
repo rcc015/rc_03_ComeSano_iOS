@@ -3,6 +3,7 @@ options:
   minimumXcodeGenVersion: 2.44.1
   deploymentTarget:
     iOS: "17.0"
+    watchOS: "10.0"
 packages:
   ComeSanoPackage:
     path: .
@@ -17,28 +18,97 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: App/Sources
-    resources:
+      - path: Shared/Connectivity
       - path: App/Resources
     settings:
       base:
         INFOPLIST_FILE: App/Config/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Config/ComeSano.entitlements
         PRODUCT_NAME: ComeSano
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 1.0
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
+      - target: ComeSanoWatchApp
       - package: ComeSanoPackage
         product: ComeSanoCore
       - package: ComeSanoPackage
         product: ComeSanoAI
       - package: ComeSanoPackage
         product: ComeSanoUI
+      - package: ComeSanoPackage
+        product: ComeSanoPersistence
+      - package: ComeSanoPackage
+        product: ComeSanoHealthKit
+
+  ComeSanoWatchApp:
+    type: com.apple.product-type.application.watchapp2
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: Watch/App
+    settings:
+      base:
+        INFOPLIST_FILE: Watch/App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: rcTools.ComeSano.watchkitapp
+        PRODUCT_NAME: ComeSanoWatch
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: ComeSanoWatchExtension
+      - target: ComeSanoWatchWidget
+
+  ComeSanoWatchExtension:
+    type: com.apple.product-type.watchkit2-extension
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: Watch/Extension/Sources
+      - path: Shared/Connectivity
+    settings:
+      base:
+        INFOPLIST_FILE: Watch/Extension/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: rcTools.ComeSano.watchkitapp.extension
+        PRODUCT_NAME: ComeSanoWatchExtension
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: Watch/Extension/ComeSanoWatch.entitlements
+    dependencies:
+      - package: ComeSanoPackage
+        product: ComeSanoCore
+      - package: ComeSanoPackage
+        product: ComeSanoHealthKit
+
+  ComeSanoWatchWidget:
+    type: com.apple.product-type.app-extension
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: Watch/Widgets
+    settings:
+      base:
+        INFOPLIST_FILE: Watch/Widgets/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: rcTools.ComeSano.watchkitapp.widget
+        PRODUCT_NAME: ComeSanoWatchWidget
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: Watch/Widgets/ComeSanoWidget.entitlements
+    dependencies:
+      - package: ComeSanoPackage
+        product: ComeSanoHealthKit
 schemes:
   ComeSanoApp:
     build:
       targets:
         ComeSanoApp: all
+        ComeSanoWatchApp: all
+        ComeSanoWatchExtension: all
+        ComeSanoWatchWidget: all
     run:
       config: Debug
     archive:
