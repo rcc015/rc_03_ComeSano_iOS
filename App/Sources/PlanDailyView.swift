@@ -26,9 +26,15 @@ struct PlanDailyView: View {
                     VStack(spacing: 20) {
                         dailyGoalCard(plan)
 
-                        mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: plan.desayuno)
-                        mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: plan.comida)
-                        mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: plan.cena)
+                        if let weeklyPlan = planStore.weeklyPlan(for: selectedWeekSlot),
+                           let currentDay = currentDayFromWeeklyPlan(weeklyPlan) {
+                            currentDayCard(currentDay, slot: selectedWeekSlot)
+                        } else {
+                            // Fallback while user still has only daily plan.
+                            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: plan.desayuno)
+                            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: plan.comida)
+                            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: plan.cena)
+                        }
 
                         weeklyActionsCard
 
@@ -302,6 +308,25 @@ struct PlanDailyView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
+    private func currentDayCard(_ day: WeeklyPlanDay, slot: WeeklyPlanSlot) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(slot == .current ? "Hoy • \(day.dia)" : "\(slot.title) • \(day.dia)")
+                .font(.headline)
+
+            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: day.desayuno)
+            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: day.comida)
+            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: day.cena)
+
+            Text("Total estimado de hoy: \(day.caloriasTotales) kcal")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
     private func macro(_ title: String, _ value: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(title)
@@ -335,6 +360,27 @@ struct PlanDailyView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func currentDayFromWeeklyPlan(_ plan: WeeklyNutritionPlan) -> WeeklyPlanDay? {
+        guard !plan.dias.isEmpty else { return nil }
+        let mondayFirstIndex = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        let expectedDay = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"][mondayFirstIndex]
+
+        if let byName = plan.dias.first(where: { normalizeDayName($0.dia) == expectedDay }) {
+            return byName
+        }
+        if mondayFirstIndex < plan.dias.count {
+            return plan.dias[mondayFirstIndex]
+        }
+        return plan.dias.first
+    }
+
+    private func normalizeDayName(_ value: String) -> String {
+        value
+            .lowercased()
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     @MainActor

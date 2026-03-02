@@ -26,6 +26,29 @@ private struct RootView: View {
         case grocery
     }
 
+    private enum AppMode: String {
+        case calorieCounter
+        case smartNutrition
+
+        var title: String {
+            switch self {
+            case .calorieCounter:
+                return "Contador de Calorías"
+            case .smartNutrition:
+                return "Nutriólogo Smart"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .calorieCounter:
+                return "flame.fill"
+            case .smartNutrition:
+                return "brain.head.profile"
+            }
+        }
+    }
+
     private let dashboardViewModel: DashboardViewModel
     private let stores: CoreDataStores
     private let healthStore: HealthKitNutritionStore
@@ -39,6 +62,7 @@ private struct RootView: View {
     @StateObject private var watchConnector: WatchConnector
     @State private var hasRequestedHealthAuthorization = false
     @State private var selectedTab: AppTab = .progress
+    @State private var appMode: AppMode = .calorieCounter
     @State private var isShowingAISettings = false
     @State private var isShowingDietaryProfile = false
     @State private var isShowingFridgeScannerForGrocery = false
@@ -86,54 +110,62 @@ private struct RootView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $selectedTab) {
-                DashboardView(viewModel: dashboardViewModel, onQuickAdd: handleQuickAdd)
-                    .tag(AppTab.progress)
-                    .tabItem {
-                        Label("Progreso", systemImage: "chart.line.uptrend.xyaxis")
-                    }
+            VStack(spacing: 10) {
+                modeSwitcher
 
-                PlanDailyView(
-                    planStore: planStore,
-                    onCreatePlanTap: {
-                        Task {
-                            await ensureHealthDataLoaded()
-                            isShowingDietaryProfile = true
+                TabView(selection: $selectedTab) {
+                    DashboardView(viewModel: dashboardViewModel, onQuickAdd: handleQuickAdd)
+                        .tag(AppTab.progress)
+                        .tabItem {
+                            Label("Progreso", systemImage: "chart.line.uptrend.xyaxis")
                         }
-                    },
-                    onGenerateWeeklyPlanTap: { slot, ajustes, ingredientesRefri in
-                        try await generateWeeklyPlan(slot: slot, ajustes: ajustes, ingredientesRefri: ingredientesRefri)
-                    },
-                    onGenerateWeeklyGroceryTap: { weeklyPlan, ingredientesRefri, replaceExisting in
-                        try await generateWeeklyGroceryList(for: weeklyPlan, ingredientesRefri: ingredientesRefri, replaceExisting: replaceExisting)
-                    },
-                    onAnalyzeFridgeTap: { imagesData in
-                        try await analyzeFridgeIngredients(from: imagesData)
-                    }
-                )
-                .tag(AppTab.plan)
-                .tabItem {
-                    Label("Plan", systemImage: "list.bullet.clipboard")
-                }
 
-                CameraAnalysisView(viewModel: photoAnalyzerViewModel)
-                    .tag(AppTab.camera)
-                    .tabItem {
-                        Label("Foto", systemImage: "camera")
-                    }
-
-                RecipeSuggestionView(viewModel: recipeSuggestionViewModel)
-                    .tag(AppTab.recipes)
-                    .tabItem {
-                        Label("Recetas", systemImage: "fork.knife")
+                    if appMode == .smartNutrition {
+                        PlanDailyView(
+                            planStore: planStore,
+                            onCreatePlanTap: {
+                                Task {
+                                    await ensureHealthDataLoaded()
+                                    isShowingDietaryProfile = true
+                                }
+                            },
+                            onGenerateWeeklyPlanTap: { slot, ajustes, ingredientesRefri in
+                                try await generateWeeklyPlan(slot: slot, ajustes: ajustes, ingredientesRefri: ingredientesRefri)
+                            },
+                            onGenerateWeeklyGroceryTap: { weeklyPlan, ingredientesRefri, replaceExisting in
+                                try await generateWeeklyGroceryList(for: weeklyPlan, ingredientesRefri: ingredientesRefri, replaceExisting: replaceExisting)
+                            },
+                            onAnalyzeFridgeTap: { imagesData in
+                                try await analyzeFridgeIngredients(from: imagesData)
+                            }
+                        )
+                        .tag(AppTab.plan)
+                        .tabItem {
+                            Label("Plan", systemImage: "list.bullet.clipboard")
+                        }
                     }
 
-                GroceryListView(viewModel: groceryListViewModel) {
-                    isShowingFridgeScannerForGrocery = true
-                }
-                .tag(AppTab.grocery)
-                .tabItem {
-                    Label("Súper", systemImage: "cart")
+                    CameraAnalysisView(viewModel: photoAnalyzerViewModel)
+                        .tag(AppTab.camera)
+                        .tabItem {
+                            Label("Foto", systemImage: "camera")
+                        }
+
+                    if appMode == .smartNutrition {
+                        RecipeSuggestionView(viewModel: recipeSuggestionViewModel)
+                            .tag(AppTab.recipes)
+                            .tabItem {
+                                Label("Recetas", systemImage: "fork.knife")
+                            }
+
+                        GroceryListView(viewModel: groceryListViewModel) {
+                            isShowingFridgeScannerForGrocery = true
+                        }
+                        .tag(AppTab.grocery)
+                        .tabItem {
+                            Label("Súper", systemImage: "cart")
+                        }
+                    }
                 }
             }
 
@@ -207,6 +239,7 @@ private struct RootView: View {
             }
         }
         .task {
+            loadAppMode()
             await ensureHealthDataLoaded()
             if !profileStore.hasCompletedOnboarding {
                 isShowingDietaryProfile = true
@@ -227,6 +260,56 @@ private struct RootView: View {
                 }
             }
         }
+        .onChange(of: appMode) { _, newMode in
+            saveAppMode(newMode)
+            if newMode == .calorieCounter {
+                let allowedTabs: Set<AppTab> = [.progress, .camera]
+                if !allowedTabs.contains(selectedTab) {
+                    selectedTab = .progress
+                }
+            }
+        }
+    }
+
+    private var modeSwitcher: some View {
+        HStack(spacing: 8) {
+            Image(systemName: appMode.icon)
+            Text(appMode.title)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            Button {
+                appMode = appMode == .calorieCounter ? .smartNutrition : .calorieCounter
+            } label: {
+                Text("Cambiar")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+    }
+
+    private func loadAppMode() {
+        let raw = UserDefaults.standard.string(forKey: "app.mode")
+        appMode = AppMode(rawValue: raw ?? AppMode.calorieCounter.rawValue) ?? .calorieCounter
+        if appMode == .calorieCounter {
+            let allowedTabs: Set<AppTab> = [.progress, .camera]
+            if !allowedTabs.contains(selectedTab) {
+                selectedTab = .progress
+            }
+        }
+    }
+
+    private func saveAppMode(_ mode: AppMode) {
+        UserDefaults.standard.set(mode.rawValue, forKey: "app.mode")
     }
 
     @MainActor
