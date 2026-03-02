@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -36,6 +36,12 @@
 		C71A7E1CAB3122C86A973C98 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 608B234368EC7E92F0AC2856 /* ComeSanoHealthKit */; };
 		D6B753BA5B17C20B5B7D8CA9 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9AFB794856997F14BF942EB1 /* ComeSanoHealthKit */; };
 		F697A096FB4991977434255C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 40CB0352BF8D3C049B462D14 /* LaunchScreen.storyboard */; };
+		F9177AFD2F55626B001975D4 /* ComeSanoCore in Frameworks */ = {isa = PBXBuildFile; productRef = F9177AFB2F55591A001975D4 /* ComeSanoCore */; };
+		F9177AFE2F55626B001975D4 /* ComeSanoHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = F9177AFC2F55591A001975D4 /* ComeSanoHealthKit */; };
+		F9177B062F5569FC001975D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F9177B052F5569FC001975D4 /* WidgetKit.framework */; };
+		F9177B082F5569FC001975D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F9177B072F5569FC001975D4 /* SwiftUI.framework */; };
+		F9177B172F5569FD001975D4 /* ComeSanoWidgetsIOSExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F9177B032F5569FC001975D4 /* ComeSanoWidgetsIOSExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F9177B1E2F556A88001975D4 /* CalorieWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C69E2C16A13434EEF7EC06A1 /* CalorieWidget.swift */; };
 		FFA398E1FA953C9559DE3601 /* ComeSanoCore in Frameworks */ = {isa = PBXBuildFile; productRef = 29778DB56A7393E9E659A18C /* ComeSanoCore */; };
 /* End PBXBuildFile section */
 
@@ -53,6 +59,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = F465A03AE2B0DCD03CDFD807;
 			remoteInfo = ComeSanoWatchApp;
+		};
+		F9177B152F5569FD001975D4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5DA09E9F866404605DDAEBF6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F9177B022F5569FC001975D4;
+			remoteInfo = ComeSanoWidgetsIOSExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -75,6 +88,17 @@
 			dstSubfolderSpec = 13;
 			files = (
 				85757568015164EA0D7A04E5 /* ComeSanoWatchWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9177B182F5569FD001975D4 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F9177B172F5569FD001975D4 /* ComeSanoWidgetsIOSExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -108,7 +132,25 @@
 		DB3915E3EB3D97443DFAFD30 /* WatchDashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDashboardViewModel.swift; sourceTree = "<group>"; };
 		DE981FEB267FF0D845470853 /* DietaryProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietaryProfileView.swift; sourceTree = "<group>"; };
 		EC47A1082B8F60BDF969C8E6 /* ComeSanoWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ComeSanoWidget.entitlements; sourceTree = "<group>"; };
+		F9177B032F5569FC001975D4 /* ComeSanoWidgetsIOSExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ComeSanoWidgetsIOSExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F9177B052F5569FC001975D4 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		F9177B072F5569FC001975D4 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		F9177B1D2F556A14001975D4 /* ComeSanoWidgetsIOSExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ComeSanoWidgetsIOSExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F9177B1B2F5569FD001975D4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F9177B022F5569FC001975D4 /* ComeSanoWidgetsIOSExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F9177B092F5569FC001975D4 /* ComeSanoWidgetsIOS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (F9177B1B2F5569FD001975D4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = ComeSanoWidgetsIOS; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		1B0AE91C59E358536C81268A /* Frameworks */ = {
@@ -123,6 +165,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F9177AFE2F55626B001975D4 /* ComeSanoHealthKit in Frameworks */,
+				F9177AFD2F55626B001975D4 /* ComeSanoCore in Frameworks */,
 				FFA398E1FA953C9559DE3601 /* ComeSanoCore in Frameworks */,
 				BC53B3A99C4CFF12B6DAE410 /* ComeSanoHealthKit in Frameworks */,
 			);
@@ -140,12 +184,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F9177B002F5569FC001975D4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F9177B082F5569FC001975D4 /* SwiftUI.framework in Frameworks */,
+				F9177B062F5569FC001975D4 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		1799A50398DE3DD9C89686C1 = {
 			isa = PBXGroup;
 			children = (
+				F9177B1D2F556A14001975D4 /* ComeSanoWidgetsIOSExtension.entitlements */,
 				2EFA89DD9F26442CA78B36C2 /* App */,
 				25C06B438D9992DB2143D398 /* Connectivity */,
 				CA610E7AAA480A1628AD0298 /* Packages */,
@@ -153,6 +207,8 @@
 				45D0BC5A2B120DF40DDFEB04 /* Sources */,
 				F6128DC6909F5D309A8F6C05 /* Sources */,
 				97F9DE5FEC7DFAC0F6617F4F /* Widgets */,
+				F9177B092F5569FC001975D4 /* ComeSanoWidgetsIOS */,
+				F9177B042F5569FC001975D4 /* Frameworks */,
 				A01D5DA3DD0084B9917002AC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -222,6 +278,7 @@
 				0611176768BDF2142F932EC2 /* ComeSano.app */,
 				30A1AB1274D224313CFE596E /* ComeSanoWatch.app */,
 				39BF5460C974E1A6F511F1DD /* ComeSanoWatchWidget.appex */,
+				F9177B032F5569FC001975D4 /* ComeSanoWidgetsIOSExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -245,6 +302,15 @@
 			path = Watch/Extension/Sources;
 			sourceTree = "<group>";
 		};
+		F9177B042F5569FC001975D4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F9177B052F5569FC001975D4 /* WidgetKit.framework */,
+				F9177B072F5569FC001975D4 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -256,11 +322,13 @@
 				E3B611E65F248A0F2894E388 /* Resources */,
 				C99E3D0423C9D5E2765806E0 /* Frameworks */,
 				5FD0CAA1C36105E68866953E /* Embed Watch Content */,
+				F9177B182F5569FD001975D4 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				EDD0C12D40CDBAC97F07FE12 /* PBXTargetDependency */,
+				F9177B162F5569FD001975D4 /* PBXTargetDependency */,
 			);
 			name = ComeSanoApp;
 			packageProductDependencies = (
@@ -316,6 +384,28 @@
 			productReference = 30A1AB1274D224313CFE596E /* ComeSanoWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F9177B022F5569FC001975D4 /* ComeSanoWidgetsIOSExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F9177B1C2F5569FD001975D4 /* Build configuration list for PBXNativeTarget "ComeSanoWidgetsIOSExtension" */;
+			buildPhases = (
+				F9177AFF2F5569FC001975D4 /* Sources */,
+				F9177B002F5569FC001975D4 /* Frameworks */,
+				F9177B012F5569FC001975D4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F9177B092F5569FC001975D4 /* ComeSanoWidgetsIOS */,
+			);
+			name = ComeSanoWidgetsIOSExtension;
+			packageProductDependencies = (
+			);
+			productName = ComeSanoWidgetsIOSExtension;
+			productReference = F9177B032F5569FC001975D4 /* ComeSanoWidgetsIOSExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -323,6 +413,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					10F1684D8F8D5754A2E3E9FE = {
@@ -333,6 +424,9 @@
 					};
 					F465A03AE2B0DCD03CDFD807 = {
 						ProvisioningStyle = Automatic;
+					};
+					F9177B022F5569FC001975D4 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -355,6 +449,7 @@
 				10F1684D8F8D5754A2E3E9FE /* ComeSanoApp */,
 				F465A03AE2B0DCD03CDFD807 /* ComeSanoWatchApp */,
 				B861D510E188A657D598E1A1 /* ComeSanoWatchWidget */,
+				F9177B022F5569FC001975D4 /* ComeSanoWidgetsIOSExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -374,6 +469,13 @@
 			files = (
 				9BA5050B9CCA3B5CAE1A7634 /* Assets.xcassets in Resources */,
 				F697A096FB4991977434255C /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9177B012F5569FC001975D4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,6 +520,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F9177AFF2F5569FC001975D4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F9177B1E2F556A88001975D4 /* CalorieWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -430,6 +540,11 @@
 			isa = PBXTargetDependency;
 			target = F465A03AE2B0DCD03CDFD807 /* ComeSanoWatchApp */;
 			targetProxy = 913E6354C3FB45A29366CD15 /* PBXContainerItemProxy */;
+		};
+		F9177B162F5569FD001975D4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F9177B022F5569FC001975D4 /* ComeSanoWidgetsIOSExtension */;
+			targetProxy = F9177B152F5569FD001975D4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -695,6 +810,84 @@
 			};
 			name = Release;
 		};
+		F9177B192F5569FD001975D4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = ComeSanoWidgetsIOSExtension.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ComeSanoWidgetsIOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ComeSanoWidgetsIOS;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.ComeSanoWidgetsIOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F9177B1A2F5569FD001975D4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = ComeSanoWidgetsIOSExtension.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ComeSanoWidgetsIOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ComeSanoWidgetsIOS;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rcTools.ComeSano.ComeSanoWidgetsIOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -730,6 +923,15 @@
 			buildConfigurations = (
 				64BACA0E21538A597E947ACF /* Debug */,
 				F094DCFD583D3298A2B52B94 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F9177B1C2F5569FD001975D4 /* Build configuration list for PBXNativeTarget "ComeSanoWidgetsIOSExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F9177B192F5569FD001975D4 /* Debug */,
+				F9177B1A2F5569FD001975D4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

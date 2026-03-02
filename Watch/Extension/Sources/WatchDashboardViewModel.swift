@@ -43,7 +43,7 @@ final class WatchDashboardViewModel: ObservableObject {
             consumed = newConsumed
             totalBurned = burned.active + burned.basal
             widgetStore.save(consumed: consumed, goal: goal)
-            WidgetCenter.shared.reloadTimelines(ofKind: "CalorieWidget")
+            WidgetCenter.shared.reloadAllTimelines()
             statusMessage = nil
         } catch {
             statusMessage = "No se pudo leer progreso."

@@ -6,6 +6,9 @@ import ComeSanoPersistence
 import ComeSanoHealthKit
 #if os(iOS)
 import UIKit
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 #endif
 
 @main
@@ -18,6 +21,22 @@ struct ComeSanoApp: App {
 }
 
 private struct RootView: View {
+    private enum WidgetShared {
+        static let appGroupID = "group.rcTools.ComeSano"
+        static let consumedKey = "widget.calories.consumed"
+        static let goalKey = "widget.calories.goal"
+        static let activeKey = "widget.calories.active"
+        static let basalKey = "widget.calories.basal"
+        static let adjustedBudgetKey = "widget.calories.adjustedBudget"
+        static let adjustedDeltaKey = "widget.calories.adjustedDelta"
+        static let proteinActualKey = "widget.macros.protein.actual"
+        static let proteinTargetKey = "widget.macros.protein.target"
+        static let carbsActualKey = "widget.macros.carbs.actual"
+        static let carbsTargetKey = "widget.macros.carbs.target"
+        static let fatActualKey = "widget.macros.fat.actual"
+        static let fatTargetKey = "widget.macros.fat.target"
+    }
+
     private enum AppTab: Hashable {
         case progress
         case foodLog
@@ -255,6 +274,13 @@ private struct RootView: View {
                 await dashboardViewModel.refresh()
             }
         }
+        .onReceive(dashboardViewModel.$today) { snapshot in
+            guard let snapshot else { return }
+            syncWidgetStore(with: snapshot)
+        }
+        .onOpenURL { url in
+            handleDeepLink(url)
+        }
         .onChange(of: selectedTab) { _, newValue in
             guard newValue == .progress else { return }
             if !profileStore.hasCompletedOnboarding {
@@ -339,6 +365,38 @@ private struct RootView: View {
 
     private func saveAppMode(_ mode: AppMode) {
         UserDefaults.standard.set(mode.rawValue, forKey: "app.mode")
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard let scheme = url.scheme?.lowercased(), scheme == "comesano" else { return }
+        guard let host = url.host?.lowercased() else { return }
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        switch host {
+        case "quickadd":
+            let type = components?.queryItems?.first(where: { $0.name == "type" })?.value?.lowercased()
+            let caloriesRaw = components?.queryItems?.first(where: { $0.name == "calories" })?.value
+            let calories = Double(caloriesRaw ?? "") ?? 400
+
+            switch type {
+            case "coffee":
+                handleQuickAdd(.coffee)
+            case "water":
+                handleQuickAdd(.waterGlass)
+            case "apple":
+                handleQuickAdd(.apple)
+            case "meal":
+                handleQuickAddCustomMeal(calories)
+            default:
+                break
+            }
+        case "open":
+            let tab = components?.queryItems?.first(where: { $0.name == "tab" })?.value?.lowercased()
+            if tab == "camera" {
+                selectedTab = .camera
+            }
+        default:
+            break
+        }
     }
 
     #if os(iOS)
@@ -484,6 +542,31 @@ private struct RootView: View {
             )
         }
         return nil
+    }
+
+    private func syncWidgetStore(with snapshot: DailyCalorieSnapshot) {
+        guard let defaults = UserDefaults(suiteName: WidgetShared.appGroupID) else { return }
+
+        let target = macroTargets(for: snapshot.date)
+        let adjustedBudget = snapshot.targetKcal + snapshot.activeBurnedKcal
+        let adjustedDelta = snapshot.consumedKcal - adjustedBudget
+
+        defaults.set(snapshot.consumedKcal, forKey: WidgetShared.consumedKey)
+        defaults.set(snapshot.targetKcal, forKey: WidgetShared.goalKey)
+        defaults.set(snapshot.activeBurnedKcal, forKey: WidgetShared.activeKey)
+        defaults.set(snapshot.basalBurnedKcal, forKey: WidgetShared.basalKey)
+        defaults.set(adjustedBudget, forKey: WidgetShared.adjustedBudgetKey)
+        defaults.set(adjustedDelta, forKey: WidgetShared.adjustedDeltaKey)
+        defaults.set(snapshot.consumedProteinGrams, forKey: WidgetShared.proteinActualKey)
+        defaults.set(target?.protein ?? 0, forKey: WidgetShared.proteinTargetKey)
+        defaults.set(snapshot.consumedCarbsGrams, forKey: WidgetShared.carbsActualKey)
+        defaults.set(target?.carbs ?? 0, forKey: WidgetShared.carbsTargetKey)
+        defaults.set(snapshot.consumedFatGrams, forKey: WidgetShared.fatActualKey)
+        defaults.set(target?.fat ?? 0, forKey: WidgetShared.fatTargetKey)
+
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 
     private func requestGeminiSuggestion(prompt: String, apiKey: String) async throws -> String? {
