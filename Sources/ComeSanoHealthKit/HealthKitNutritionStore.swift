@@ -96,6 +96,10 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DailyIntak
                 options: .cumulativeSum
             ) { _, result, error in
                 if let error {
+                    if Self.shouldTreatAsNoData(error) {
+                        continuation.resume(returning: 0)
+                        return
+                    }
                     continuation.resume(throwing: error)
                     return
                 }
@@ -106,6 +110,15 @@ public final class HealthKitNutritionStore: DailyCalorieBurnProvider, DailyIntak
 
             healthStore.execute(query)
         }
+    }
+
+    private static func shouldTreatAsNoData(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == HKErrorDomain, nsError.code == HKError.Code.errorNoData.rawValue {
+            return true
+        }
+        let lower = nsError.localizedDescription.lowercased()
+        return lower.contains("no data available")
     }
 
     private func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {

@@ -6,6 +6,7 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published var waterReminderEnabled: Bool
     @Published var mealReminderEnabled: Bool
+    @Published var nutritionPlanRemindersEnabled: Bool
     @Published var waterIntervalHours: Int
     @Published var mealHour: Int
     @Published var mealMinute: Int
@@ -17,6 +18,7 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
     private enum Keys {
         static let waterEnabled = "notifications.water.enabled"
         static let mealEnabled = "notifications.meal.enabled"
+        static let nutritionPlanEnabled = "notifications.plan.enabled"
         static let waterIntervalHours = "notifications.water.intervalHours"
         static let mealHour = "notifications.meal.hour"
         static let mealMinute = "notifications.meal.minute"
@@ -28,6 +30,13 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
         static let actionWaterGlassDone = "ACTION_WATER_GLASS_DONE"
         static let waterRequest = "water_every_x_hours"
         static let mealRequest = "meal_daily_time"
+        static let planBreakfast = "plan_breakfast_daily_time"
+        static let planSnack1 = "plan_snack1_daily_time"
+        static let planLunch = "plan_lunch_daily_time"
+        static let planSnack2 = "plan_snack2_daily_time"
+        static let planDinner = "plan_dinner_daily_time"
+
+        static let planRequestIDs = [planBreakfast, planSnack1, planLunch, planSnack2, planDinner]
     }
 
     init(center: UNUserNotificationCenter = .current(), defaults: UserDefaults = .standard) {
@@ -41,6 +50,7 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
 
         self.waterReminderEnabled = defaults.bool(forKey: Keys.waterEnabled)
         self.mealReminderEnabled = defaults.bool(forKey: Keys.mealEnabled)
+        self.nutritionPlanRemindersEnabled = defaults.bool(forKey: Keys.nutritionPlanEnabled)
         self.waterIntervalHours = safeInterval
         self.mealHour = max(0, min(23, storedHour))
         self.mealMinute = max(0, min(59, storedMinute))
@@ -60,7 +70,7 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
         authorizationStatus = settings.authorizationStatus
     }
 
-    func applyCurrentSchedule() async {
+    func applyCurrentSchedule(mealSchedule: MealScheduleStore? = nil) async {
         persistSettings()
 
         guard await requestAuthorizationIfNeeded() else {
@@ -81,13 +91,20 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
         } else {
             center.removePendingNotificationRequests(withIdentifiers: [IDs.mealRequest])
         }
+
+        if nutritionPlanRemindersEnabled, let mealSchedule {
+            await scheduleNutritionPlanReminders(schedule: mealSchedule)
+        } else {
+            center.removePendingNotificationRequests(withIdentifiers: IDs.planRequestIDs)
+        }
     }
 
     func clearAllReminders() {
         waterReminderEnabled = false
         mealReminderEnabled = false
+        nutritionPlanRemindersEnabled = false
         persistSettings()
-        center.removePendingNotificationRequests(withIdentifiers: [IDs.waterRequest, IDs.mealRequest])
+        center.removePendingNotificationRequests(withIdentifiers: [IDs.waterRequest, IDs.mealRequest] + IDs.planRequestIDs)
     }
 
     func resetHydrationCounter() {
@@ -153,9 +170,65 @@ final class ReminderNotificationManager: NSObject, ObservableObject {
     private func persistSettings() {
         defaults.set(waterReminderEnabled, forKey: Keys.waterEnabled)
         defaults.set(mealReminderEnabled, forKey: Keys.mealEnabled)
+        defaults.set(nutritionPlanRemindersEnabled, forKey: Keys.nutritionPlanEnabled)
         defaults.set(waterIntervalHours, forKey: Keys.waterIntervalHours)
         defaults.set(mealHour, forKey: Keys.mealHour)
         defaults.set(mealMinute, forKey: Keys.mealMinute)
+    }
+
+    private func scheduleNutritionPlanReminders(schedule: MealScheduleStore) async {
+        center.removePendingNotificationRequests(withIdentifiers: IDs.planRequestIDs)
+
+        await schedulePlanMealReminder(
+            identifier: IDs.planBreakfast,
+            title: "Hora de desayuno",
+            body: "Toca registrar tu desayuno.",
+            hour: schedule.breakfastHour,
+            minute: schedule.breakfastMinute
+        )
+        await schedulePlanMealReminder(
+            identifier: IDs.planSnack1,
+            title: "Hora de colación 1",
+            body: "Haz una colación ligera para mantener energía.",
+            hour: schedule.snack1Hour,
+            minute: schedule.snack1Minute
+        )
+        await schedulePlanMealReminder(
+            identifier: IDs.planLunch,
+            title: "Hora de comida",
+            body: "Registra tu comida para seguir tu plan.",
+            hour: schedule.lunchHour,
+            minute: schedule.lunchMinute
+        )
+        await schedulePlanMealReminder(
+            identifier: IDs.planSnack2,
+            title: "Hora de colación 2",
+            body: "Pequeña colación para llegar bien a la cena.",
+            hour: schedule.snack2Hour,
+            minute: schedule.snack2Minute
+        )
+        await schedulePlanMealReminder(
+            identifier: IDs.planDinner,
+            title: "Hora de cena",
+            body: "Momento de cerrar tu día nutricional.",
+            hour: schedule.dinnerHour,
+            minute: schedule.dinnerMinute
+        )
+    }
+
+    private func schedulePlanMealReminder(identifier: String, title: String, body: String, hour: Int, minute: Int) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = max(0, min(23, hour))
+        components.minute = max(0, min(59, minute))
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        try? await center.add(request)
     }
 
     private func registerCategories() {

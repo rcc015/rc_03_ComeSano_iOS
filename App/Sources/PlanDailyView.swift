@@ -32,7 +32,9 @@ struct PlanDailyView: View {
                         } else {
                             // Fallback while user still has only daily plan.
                             mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: plan.desayuno)
+                            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: plan.colacion1)
                             mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: plan.comida)
+                            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: plan.colacion2)
                             mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: plan.cena)
                         }
 
@@ -288,7 +290,9 @@ struct PlanDailyView: View {
                         .font(.title3.bold())
 
                     mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: day.desayuno)
+                    mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: day.colacion1)
                     mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: day.comida)
+                    mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: day.colacion2)
                     mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: day.cena)
 
                     Text("Total estimado: \(day.caloriasTotales) kcal")
@@ -314,7 +318,9 @@ struct PlanDailyView: View {
                 .font(.headline)
 
             mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: day.desayuno)
+            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: day.colacion1)
             mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: day.comida)
+            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: day.colacion2)
             mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: day.cena)
 
             Text("Total estimado de hoy: \(day.caloriasTotales) kcal")
@@ -349,6 +355,11 @@ struct PlanDailyView: View {
                     Text(title).font(.subheadline.weight(.semibold))
                     Spacer()
                     Text("\(meal.calorias) kcal").font(.caption).foregroundStyle(.secondary)
+                }
+                if !meal.horaSugerida.isEmpty {
+                    Text("Hora sugerida: \(meal.horaSugerida)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Text(meal.titulo).font(.headline)
                 Text(meal.descripcion)
@@ -444,9 +455,11 @@ struct PlanDailyView: View {
                 dias: [
                     WeeklyPlanDay(
                         dia: "Lunes",
-                        desayuno: NutritionMeal(titulo: "Huevos con avena", calorias: 500, descripcion: "3 huevos + avena con fruta"),
-                        comida: NutritionMeal(titulo: "Pollo y arroz", calorias: 900, descripcion: "200g pollo, arroz integral, verduras"),
-                        cena: NutritionMeal(titulo: "Salmón y ensalada", calorias: 700, descripcion: "Filete con ensalada grande"),
+                        desayuno: NutritionMeal(titulo: "Huevos con avena", calorias: 500, descripcion: "3 huevos + avena con fruta", horaSugerida: "10:30"),
+                        colacion1: NutritionMeal(titulo: "Yogurt", calorias: 180, descripcion: "Yogurt con fruta", horaSugerida: "13:00"),
+                        comida: NutritionMeal(titulo: "Pollo y arroz", calorias: 900, descripcion: "200g pollo, arroz integral, verduras", horaSugerida: "15:30"),
+                        colacion2: NutritionMeal(titulo: "Sandwich pavo", calorias: 180, descripcion: "Snack de tarde", horaSugerida: "18:30"),
+                        cena: NutritionMeal(titulo: "Salmón y ensalada", calorias: 700, descripcion: "Filete con ensalada grande", horaSugerida: "21:00"),
                         caloriasTotales: 2100
                     )
                 ],

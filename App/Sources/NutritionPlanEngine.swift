@@ -7,15 +7,17 @@ struct NutritionMeal: Codable, Sendable {
     let titulo: String
     let calorias: Int
     let descripcion: String
+    let horaSugerida: String
 
     private enum CodingKeys: String, CodingKey {
-        case titulo, calorias, descripcion
+        case titulo, calorias, descripcion, horaSugerida
     }
 
-    init(titulo: String, calorias: Int, descripcion: String) {
+    init(titulo: String, calorias: Int, descripcion: String, horaSugerida: String = "") {
         self.titulo = titulo
         self.calorias = calorias
         self.descripcion = descripcion
+        self.horaSugerida = horaSugerida
     }
 
     init(from decoder: Decoder) throws {
@@ -23,6 +25,7 @@ struct NutritionMeal: Codable, Sendable {
         titulo = try container.decodeIfPresent(String.self, forKey: .titulo) ?? "Comida"
         descripcion = try container.decodeIfPresent(String.self, forKey: .descripcion) ?? ""
         calorias = container.decodeFlexibleInt(forKey: .calorias) ?? 0
+        horaSugerida = try container.decodeIfPresent(String.self, forKey: .horaSugerida) ?? ""
     }
 }
 
@@ -32,7 +35,9 @@ struct NutritionPlan: Codable, Sendable {
     let carbohidratosGramos: Int
     let grasasGramos: Int
     let desayuno: NutritionMeal
+    let colacion1: NutritionMeal
     let comida: NutritionMeal
+    let colacion2: NutritionMeal
     let cena: NutritionMeal
     let createdAt: Date
     let source: String
@@ -43,7 +48,9 @@ struct NutritionPlan: Codable, Sendable {
         carbohidratosGramos: Int,
         grasasGramos: Int,
         desayuno: NutritionMeal,
+        colacion1: NutritionMeal,
         comida: NutritionMeal,
+        colacion2: NutritionMeal,
         cena: NutritionMeal,
         createdAt: Date = .now,
         source: String = "ai"
@@ -53,7 +60,9 @@ struct NutritionPlan: Codable, Sendable {
         self.carbohidratosGramos = carbohidratosGramos
         self.grasasGramos = grasasGramos
         self.desayuno = desayuno
+        self.colacion1 = colacion1
         self.comida = comida
+        self.colacion2 = colacion2
         self.cena = cena
         self.createdAt = createdAt
         self.source = source
@@ -61,7 +70,7 @@ struct NutritionPlan: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case caloriasDiarias, proteinaGramos, carbohidratosGramos, grasasGramos
-        case desayuno, comida, cena
+        case desayuno, colacion1, comida, colacion2, cena
         case createdAt, source
     }
 
@@ -73,7 +82,9 @@ struct NutritionPlan: Codable, Sendable {
         carbohidratosGramos = container.decodeFlexibleInt(forKey: .carbohidratosGramos) ?? 0
         grasasGramos = container.decodeFlexibleInt(forKey: .grasasGramos) ?? 0
         desayuno = (try? container.decode(NutritionMeal.self, forKey: .desayuno)) ?? NutritionMeal(titulo: "Desayuno", calorias: 0, descripcion: "")
+        colacion1 = (try? container.decode(NutritionMeal.self, forKey: .colacion1)) ?? NutritionMeal(titulo: "Colación 1", calorias: 0, descripcion: "")
         comida = (try? container.decode(NutritionMeal.self, forKey: .comida)) ?? NutritionMeal(titulo: "Comida", calorias: 0, descripcion: "")
+        colacion2 = (try? container.decode(NutritionMeal.self, forKey: .colacion2)) ?? NutritionMeal(titulo: "Colación 2", calorias: 0, descripcion: "")
         cena = (try? container.decode(NutritionMeal.self, forKey: .cena)) ?? NutritionMeal(titulo: "Cena", calorias: 0, descripcion: "")
 
         if let dateString = try? container.decode(String.self, forKey: .createdAt),
@@ -101,7 +112,9 @@ struct WeeklyPlanDay: Codable, Sendable, Identifiable {
     let id: UUID
     let dia: String
     let desayuno: NutritionMeal
+    let colacion1: NutritionMeal
     let comida: NutritionMeal
+    let colacion2: NutritionMeal
     let cena: NutritionMeal
     let caloriasTotales: Int
 
@@ -109,20 +122,24 @@ struct WeeklyPlanDay: Codable, Sendable, Identifiable {
         id: UUID = UUID(),
         dia: String,
         desayuno: NutritionMeal,
+        colacion1: NutritionMeal,
         comida: NutritionMeal,
+        colacion2: NutritionMeal,
         cena: NutritionMeal,
         caloriasTotales: Int
     ) {
         self.id = id
         self.dia = dia
         self.desayuno = desayuno
+        self.colacion1 = colacion1
         self.comida = comida
+        self.colacion2 = colacion2
         self.cena = cena
         self.caloriasTotales = caloriasTotales
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, dia, desayuno, comida, cena, caloriasTotales
+        case id, dia, desayuno, colacion1, comida, colacion2, cena, caloriasTotales
     }
 
     init(from decoder: Decoder) throws {
@@ -130,10 +147,20 @@ struct WeeklyPlanDay: Codable, Sendable, Identifiable {
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         dia = try container.decodeIfPresent(String.self, forKey: .dia) ?? "Día"
         desayuno = (try? container.decode(NutritionMeal.self, forKey: .desayuno)) ?? NutritionMeal(titulo: "Desayuno", calorias: 0, descripcion: "")
+        colacion1 = (try? container.decode(NutritionMeal.self, forKey: .colacion1)) ?? NutritionMeal(titulo: "Colación 1", calorias: 0, descripcion: "")
         comida = (try? container.decode(NutritionMeal.self, forKey: .comida)) ?? NutritionMeal(titulo: "Comida", calorias: 0, descripcion: "")
+        colacion2 = (try? container.decode(NutritionMeal.self, forKey: .colacion2)) ?? NutritionMeal(titulo: "Colación 2", calorias: 0, descripcion: "")
         cena = (try? container.decode(NutritionMeal.self, forKey: .cena)) ?? NutritionMeal(titulo: "Cena", calorias: 0, descripcion: "")
-        caloriasTotales = container.decodeFlexibleInt(forKey: .caloriasTotales) ?? (desayuno.calorias + comida.calorias + cena.calorias)
+        caloriasTotales = container.decodeFlexibleInt(forKey: .caloriasTotales) ?? (desayuno.calorias + colacion1.calorias + comida.calorias + colacion2.calorias + cena.calorias)
     }
+}
+
+struct NutritionMealSchedule: Sendable {
+    let desayuno: String
+    let colacion1: String
+    let comida: String
+    let colacion2: String
+    let cena: String
 }
 
 struct WeeklyNutritionPlan: Codable, Sendable {
@@ -201,6 +228,7 @@ struct NutritionProfileInput: Sendable {
     let diasGym: Int
     let preferenciaAlimenticia: String
     let alergias: String
+    let horarios: NutritionMealSchedule
 }
 
 struct WeeklyPlanGenerationInput: Sendable {
@@ -487,7 +515,9 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
             carbohidratosGramos: plan.carbohidratosGramos,
             grasasGramos: plan.grasasGramos,
             desayuno: plan.desayuno,
+            colacion1: plan.colacion1,
             comida: plan.comida,
+            colacion2: plan.colacion2,
             cena: plan.cena,
             createdAt: .now,
             source: "gemini"
@@ -508,7 +538,9 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
             carbohidratosGramos: plan.carbohidratosGramos,
             grasasGramos: plan.grasasGramos,
             desayuno: plan.desayuno,
+            colacion1: plan.colacion1,
             comida: plan.comida,
+            colacion2: plan.colacion2,
             cena: plan.cena,
             createdAt: .now,
             source: "openai"
@@ -575,19 +607,23 @@ enum NutritionPlanPromptBuilder {
         - Días de gym por semana: \(profile.diasGym)
         - Preferencia alimenticia: \(profile.preferenciaAlimenticia)
         - Alergias/restricciones: \(profile.alergias.isEmpty ? "Ninguna" : profile.alergias)
+        - Horarios sugeridos:
+          desayuno \(profile.horarios.desayuno), colación 1 \(profile.horarios.colacion1), comida \(profile.horarios.comida), colación 2 \(profile.horarios.colacion2), cena \(profile.horarios.cena)
 
         Reglas:
         1) Calcula calorías y macros coherentes para la meta.
-        2) Propón desayuno, comida y cena realistas.
+        2) Propón desayuno, colación 1, comida, colación 2 y cena realistas.
         3) Responde únicamente JSON estricto, sin markdown, con este esquema exacto:
         {
           "caloriasDiarias": 2100,
           "proteinaGramos": 150,
           "carbohidratosGramos": 200,
           "grasasGramos": 70,
-          "desayuno": {"titulo":"", "calorias":450, "descripcion":""},
-          "comida": {"titulo":"", "calorias":750, "descripcion":""},
-          "cena": {"titulo":"", "calorias":600, "descripcion":""},
+          "desayuno": {"titulo":"", "calorias":450, "descripcion":"", "horaSugerida":"10:30"},
+          "colacion1": {"titulo":"", "calorias":180, "descripcion":"", "horaSugerida":"13:00"},
+          "comida": {"titulo":"", "calorias":750, "descripcion":"", "horaSugerida":"15:30"},
+          "colacion2": {"titulo":"", "calorias":180, "descripcion":"", "horaSugerida":"18:30"},
+          "cena": {"titulo":"", "calorias":600, "descripcion":"", "horaSugerida":"21:00"},
           "createdAt": "2026-01-01T00:00:00Z",
           "source": "ai"
         }
@@ -620,9 +656,11 @@ enum NutritionPlanPromptBuilder {
         - Alergias/restricciones: \(profile.alergias.isEmpty ? "Ninguna" : profile.alergias)
         - Ajustes solicitados por usuario: \(ajustes.isEmpty ? "Ninguno" : ajustes)
         - Ingredientes disponibles en refri/alacena: \(ingredientes.isEmpty ? "No especificados" : ingredientes)
+        - Horarios sugeridos:
+          desayuno \(profile.horarios.desayuno), colación 1 \(profile.horarios.colacion1), comida \(profile.horarios.comida), colación 2 \(profile.horarios.colacion2), cena \(profile.horarios.cena)
 
         Reglas:
-        1) Entregar 7 días completos con desayuno/comida/cena.
+        1) Entregar 7 días completos con desayuno, colación 1, comida, colación 2 y cena.
         2) Mantener coherencia calórica/macros con objetivo.
         3) Priorizar ingredientes de refri si se proporcionan.
         4) Responder únicamente JSON estricto con este esquema:
@@ -634,9 +672,11 @@ enum NutritionPlanPromptBuilder {
           "dias": [
             {
               "dia": "Lunes",
-              "desayuno": {"titulo":"", "calorias":450, "descripcion":""},
-              "comida": {"titulo":"", "calorias":850, "descripcion":""},
-              "cena": {"titulo":"", "calorias":800, "descripcion":""},
+              "desayuno": {"titulo":"", "calorias":450, "descripcion":"", "horaSugerida":"10:30"},
+              "colacion1": {"titulo":"", "calorias":180, "descripcion":"", "horaSugerida":"13:00"},
+              "comida": {"titulo":"", "calorias":850, "descripcion":"", "horaSugerida":"15:30"},
+              "colacion2": {"titulo":"", "calorias":180, "descripcion":"", "horaSugerida":"18:30"},
+              "cena": {"titulo":"", "calorias":800, "descripcion":"", "horaSugerida":"21:00"},
               "caloriasTotales": 2100
             }
           ],
@@ -651,7 +691,7 @@ enum NutritionPlanPromptBuilder {
         let profile = input.profile
         let ingredientes = input.ingredientesRefri.joined(separator: ", ")
         let weeklySummary = input.weeklyPlan.dias.map { day in
-            "\(day.dia): \(day.desayuno.titulo), \(day.comida.titulo), \(day.cena.titulo)"
+            "\(day.dia): \(day.desayuno.titulo), \(day.colacion1.titulo), \(day.comida.titulo), \(day.colacion2.titulo), \(day.cena.titulo)"
         }.joined(separator: " | ")
 
         return """

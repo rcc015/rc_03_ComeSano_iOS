@@ -7,6 +7,7 @@ public final class DashboardViewModel: ObservableObject {
     @Published public private(set) var weekly: WeeklyProgress?
     @Published public private(set) var weekSnapshots: [DailyCalorieSnapshot] = []
     @Published public private(set) var errorMessage: String?
+    @Published public private(set) var currentGoal: PrimaryGoal
 
     private let burnProvider: DailyCalorieBurnProvider
     private let intakeProvider: DailyIntakeProvider
@@ -23,6 +24,7 @@ public final class DashboardViewModel: ObservableObject {
         self.burnProvider = burnProvider
         self.intakeProvider = intakeProvider
         self.calendar = calendar
+        self.currentGoal = profile.primaryGoal
     }
 
     public func refresh(referenceDate: Date = .now) async {
@@ -44,6 +46,7 @@ public final class DashboardViewModel: ObservableObject {
 
     public func updateProfile(_ updatedProfile: UserProfile) {
         profile = updatedProfile
+        currentGoal = updatedProfile.primaryGoal
     }
 
     private func startOfWeekMonday(for date: Date) -> Date {
@@ -61,6 +64,7 @@ public final class DashboardViewModel: ObservableObject {
         for offset in 0..<7 {
             guard let day = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { continue }
             let consumed = try await intakeProvider.fetchConsumedCalories(for: day)
+            let consumedMacros = try await fetchConsumedMacros(for: day)
             let burned = try await burnProvider.fetchBurnedCalories(for: day)
             snapshots.append(
                 DailyCalorieSnapshot(
@@ -68,12 +72,22 @@ public final class DashboardViewModel: ObservableObject {
                     consumedKcal: consumed,
                     activeBurnedKcal: burned.active,
                     basalBurnedKcal: burned.basal,
-                    targetKcal: profile.dailyCalorieTarget
+                    targetKcal: profile.dailyCalorieTarget,
+                    consumedProteinGrams: consumedMacros.proteinGrams,
+                    consumedCarbsGrams: consumedMacros.carbsGrams,
+                    consumedFatGrams: consumedMacros.fatGrams
                 )
             )
         }
 
         return snapshots
+    }
+
+    private func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double) {
+        guard let macroProvider = intakeProvider as? any DailyMacroIntakeProvider else {
+            return (0, 0, 0)
+        }
+        return try await macroProvider.fetchConsumedMacros(for: date)
     }
 }
 

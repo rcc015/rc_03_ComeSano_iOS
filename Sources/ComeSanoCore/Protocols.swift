@@ -8,6 +8,10 @@ public protocol DailyIntakeProvider: Sendable {
     func fetchConsumedCalories(for date: Date) async throws -> Double
 }
 
+public protocol DailyMacroIntakeProvider: Sendable {
+    func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double)
+}
+
 public protocol DietaryEnergyWriter: Sendable {
     func saveDietaryEnergy(kilocalories: Double, at date: Date) async throws
 }

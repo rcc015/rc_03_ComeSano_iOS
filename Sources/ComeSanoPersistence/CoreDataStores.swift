@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 import ComeSanoCore
 
-public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, DailyIntakeProvider {
+public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, DailyIntakeProvider, DailyMacroIntakeProvider {
     private let controller: PersistenceController
 
     public init(controller: PersistenceController) {
@@ -77,6 +77,52 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, D
             let result = try context.fetch(request)
             let total = result.first?["sumCalories"] as? NSNumber
             return total?.doubleValue ?? 0
+        }
+    }
+
+    public func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double) {
+        let context = controller.container.newBackgroundContext()
+        return try await context.perform {
+            let calendar = Calendar.current
+            let start = calendar.startOfDay(for: date)
+            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return (0, 0, 0) }
+
+            let request = NSFetchRequest<NSDictionary>(entityName: "FoodRecord")
+            request.resultType = .dictionaryResultType
+            request.predicate = NSPredicate(format: "loggedAt >= %@ AND loggedAt < %@", start as NSDate, end as NSDate)
+
+            let proteinExpression = NSExpressionDescription()
+            proteinExpression.name = "sumProtein"
+            proteinExpression.expression = NSExpression(
+                forFunction: "sum:",
+                arguments: [NSExpression(forKeyPath: "proteinGrams")]
+            )
+            proteinExpression.expressionResultType = .doubleAttributeType
+
+            let carbsExpression = NSExpressionDescription()
+            carbsExpression.name = "sumCarbs"
+            carbsExpression.expression = NSExpression(
+                forFunction: "sum:",
+                arguments: [NSExpression(forKeyPath: "carbsGrams")]
+            )
+            carbsExpression.expressionResultType = .doubleAttributeType
+
+            let fatsExpression = NSExpressionDescription()
+            fatsExpression.name = "sumFats"
+            fatsExpression.expression = NSExpression(
+                forFunction: "sum:",
+                arguments: [NSExpression(forKeyPath: "fatGrams")]
+            )
+            fatsExpression.expressionResultType = .doubleAttributeType
+
+            request.propertiesToFetch = [proteinExpression, carbsExpression, fatsExpression]
+
+            let result = try context.fetch(request)
+            let dict = result.first
+            let protein = (dict?["sumProtein"] as? NSNumber)?.doubleValue ?? 0
+            let carbs = (dict?["sumCarbs"] as? NSNumber)?.doubleValue ?? 0
+            let fats = (dict?["sumFats"] as? NSNumber)?.doubleValue ?? 0
+            return (protein, carbs, fats)
         }
     }
 

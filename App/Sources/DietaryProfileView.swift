@@ -18,6 +18,7 @@ struct DietaryProfileView: View {
     let initialProfile: UserProfile
     let bodyMetrics: HealthBodyMetrics?
     let planGenerator: any NutritionPlanGenerating
+    let mealScheduleStore: MealScheduleStore
     let onPlanAccepted: (UserProfile, NutritionPlan) -> Void
 
     @State private var name = ""
@@ -132,7 +133,9 @@ struct DietaryProfileView: View {
 
                     Section("Menú Sugerido Día 1") {
                         mealRow("Desayuno", meal: plan.desayuno)
+                        mealRow("Colación 1", meal: plan.colacion1)
                         mealRow("Comida", meal: plan.comida)
+                        mealRow("Colación 2", meal: plan.colacion2)
                         mealRow("Cena", meal: plan.cena)
                     }
 
@@ -175,6 +178,11 @@ struct DietaryProfileView: View {
                 Text(label).font(.subheadline.weight(.semibold))
                 Spacer()
                 Text("\(meal.calorias) kcal").font(.caption).foregroundStyle(.secondary)
+            }
+            if !meal.horaSugerida.isEmpty {
+                Text("Hora sugerida: \(meal.horaSugerida)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Text(meal.titulo).font(.headline)
             Text(meal.descripcion).font(.footnote).foregroundStyle(.secondary)
@@ -244,7 +252,14 @@ struct DietaryProfileView: View {
             meta: selectedGoal,
             diasGym: gymDays,
             preferenciaAlimenticia: preference.rawValue,
-            alergias: allergies.trimmingCharacters(in: .whitespacesAndNewlines)
+            alergias: allergies.trimmingCharacters(in: .whitespacesAndNewlines),
+            horarios: NutritionMealSchedule(
+                desayuno: mealScheduleStore.breakfastTime,
+                colacion1: mealScheduleStore.snack1Time,
+                comida: mealScheduleStore.lunchTime,
+                colacion2: mealScheduleStore.snack2Time,
+                cena: mealScheduleStore.dinnerTime
+            )
         )
 
         do {
@@ -302,39 +317,57 @@ struct DietaryProfileView: View {
     private func breakfastSuggestion() -> NutritionMeal {
         switch preference {
         case .vegetarian:
-            return .init(titulo: "Avena proteica con yogurt griego", calorias: 450, descripcion: "Avena, yogurt griego, frutos rojos y nueces.")
+            return .init(titulo: "Avena proteica con yogurt griego", calorias: 450, descripcion: "Avena, yogurt griego, frutos rojos y nueces.", horaSugerida: mealScheduleStore.breakfastTime)
         case .keto:
-            return .init(titulo: "Huevos con aguacate y queso", calorias: 430, descripcion: "3 huevos, aguacate y queso fresco.")
+            return .init(titulo: "Huevos con aguacate y queso", calorias: 430, descripcion: "3 huevos, aguacate y queso fresco.", horaSugerida: mealScheduleStore.breakfastTime)
         case .lactoseFree:
-            return .init(titulo: "Smoothie de proteína sin lactosa", calorias: 420, descripcion: "Leche vegetal, proteína aislada, plátano y avena.")
+            return .init(titulo: "Smoothie de proteína sin lactosa", calorias: 420, descripcion: "Leche vegetal, proteína aislada, plátano y avena.", horaSugerida: mealScheduleStore.breakfastTime)
         case .none:
-            return .init(titulo: "Omelette de claras con tostada integral", calorias: 410, descripcion: "Claras, espinaca y pan integral.")
+            return .init(titulo: "Omelette de claras con tostada integral", calorias: 410, descripcion: "Claras, espinaca y pan integral.", horaSugerida: mealScheduleStore.breakfastTime)
         }
+    }
+
+    private func snack1Suggestion() -> NutritionMeal {
+        .init(
+            titulo: "Yogurt griego con fruta",
+            calorias: 180,
+            descripcion: "Yogurt griego natural con una porción de fruta.",
+            horaSugerida: mealScheduleStore.snack1Time
+        )
     }
 
     private func lunchSuggestion() -> NutritionMeal {
         switch preference {
         case .vegetarian:
-            return .init(titulo: "Bowl de quinoa con garbanzos", calorias: 700, descripcion: "Quinoa, garbanzos, verduras salteadas y aceite de oliva.")
+            return .init(titulo: "Bowl de quinoa con garbanzos", calorias: 700, descripcion: "Quinoa, garbanzos, verduras salteadas y aceite de oliva.", horaSugerida: mealScheduleStore.lunchTime)
         case .keto:
-            return .init(titulo: "Salmón con ensalada verde", calorias: 720, descripcion: "Salmón a la plancha, pepino, aguacate y semillas.")
+            return .init(titulo: "Salmón con ensalada verde", calorias: 720, descripcion: "Salmón a la plancha, pepino, aguacate y semillas.", horaSugerida: mealScheduleStore.lunchTime)
         case .lactoseFree:
-            return .init(titulo: "Pollo con arroz y vegetales", calorias: 690, descripcion: "Pechuga de pollo, arroz jazmín y verduras.")
+            return .init(titulo: "Pollo con arroz y vegetales", calorias: 690, descripcion: "Pechuga de pollo, arroz jazmín y verduras.", horaSugerida: mealScheduleStore.lunchTime)
         case .none:
-            return .init(titulo: "Pollo a la plancha con camote", calorias: 680, descripcion: "Pechuga, camote horneado y ensalada.")
+            return .init(titulo: "Pollo a la plancha con camote", calorias: 680, descripcion: "Pechuga, camote horneado y ensalada.", horaSugerida: mealScheduleStore.lunchTime)
         }
+    }
+
+    private func snack2Suggestion() -> NutritionMeal {
+        .init(
+            titulo: "Sándwich ligero de pavo",
+            calorias: 180,
+            descripcion: "Pan integral, pavo y vegetales.",
+            horaSugerida: mealScheduleStore.snack2Time
+        )
     }
 
     private func dinnerSuggestion() -> NutritionMeal {
         switch preference {
         case .vegetarian:
-            return .init(titulo: "Tofu con verduras al wok", calorias: 520, descripcion: "Tofu, pimiento, calabaza y salsa ligera.")
+            return .init(titulo: "Tofu con verduras al wok", calorias: 520, descripcion: "Tofu, pimiento, calabaza y salsa ligera.", horaSugerida: mealScheduleStore.dinnerTime)
         case .keto:
-            return .init(titulo: "Carne magra con brócoli", calorias: 540, descripcion: "Carne de res magra y brócoli con mantequilla.")
+            return .init(titulo: "Carne magra con brócoli", calorias: 540, descripcion: "Carne de res magra y brócoli con mantequilla.", horaSugerida: mealScheduleStore.dinnerTime)
         case .lactoseFree:
-            return .init(titulo: "Atún con papa y ensalada", calorias: 510, descripcion: "Atún, papa cocida y ensalada verde.")
+            return .init(titulo: "Atún con papa y ensalada", calorias: 510, descripcion: "Atún, papa cocida y ensalada verde.", horaSugerida: mealScheduleStore.dinnerTime)
         case .none:
-            return .init(titulo: "Pescado al horno con arroz", calorias: 500, descripcion: "Pescado blanco, arroz y espárragos.")
+            return .init(titulo: "Pescado al horno con arroz", calorias: 500, descripcion: "Pescado blanco, arroz y espárragos.", horaSugerida: mealScheduleStore.dinnerTime)
         }
     }
 
@@ -348,7 +381,9 @@ struct DietaryProfileView: View {
             carbohidratosGramos: macros.carbs,
             grasasGramos: macros.fats,
             desayuno: breakfastSuggestion(),
+            colacion1: snack1Suggestion(),
             comida: lunchSuggestion(),
+            colacion2: snack2Suggestion(),
             cena: dinnerSuggestion(),
             source: "local"
         )
@@ -367,6 +402,7 @@ struct DietaryProfileView: View {
         ),
         bodyMetrics: nil,
         planGenerator: EmptyNutritionPlanGenerator(),
+        mealScheduleStore: MealScheduleStore(),
         onPlanAccepted: { _, _ in }
     )
 }

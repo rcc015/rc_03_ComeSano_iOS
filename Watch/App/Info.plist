@@ -22,7 +22,7 @@
 	<string>ComeSano lee calorías consumidas y quemadas para mostrar tu progreso en el reloj.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>ComeSano escribe tus calorías consumidas al registrar el café desde el Apple Watch.</string>
-	<key>WKWatchKitApp</key>
+	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>rcTools.ComeSano</string>

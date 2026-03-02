@@ -20,6 +20,7 @@ struct ComeSanoApp: App {
 private struct RootView: View {
     private enum AppTab: Hashable {
         case progress
+        case foodLog
         case plan
         case camera
         case recipes
@@ -55,8 +56,10 @@ private struct RootView: View {
     @StateObject private var photoAnalyzerViewModel: FoodPhotoAnalyzerViewModel
     @StateObject private var recipeSuggestionViewModel: RecipeSuggestionViewModel
     @StateObject private var groceryListViewModel: GroceryListViewModel
+    @StateObject private var foodLogViewModel: FoodLogViewModel
     @StateObject private var profileStore: UserProfileStore
     @StateObject private var planStore: NutritionPlanStore
+    @StateObject private var mealScheduleStore: MealScheduleStore
     @StateObject private var keychainStore: AIKeychainStore
     @StateObject private var reminderManager: ReminderNotificationManager
     @StateObject private var watchConnector: WatchConnector
@@ -67,8 +70,13 @@ private struct RootView: View {
     @State private var isShowingDietaryProfile = false
     @State private var isShowingFridgeScannerForGrocery = false
     @State private var healthBodyMetrics: HealthBodyMetrics?
+    @State private var hasSyncedHydrationLogs = false
 
     init() {
+        #if os(iOS)
+        Self.configureTabBarAppearance()
+        #endif
+
         let profileStore = UserProfileStore()
         let profile = profileStore.profile
 
@@ -100,8 +108,10 @@ private struct RootView: View {
             )
         )
         _groceryListViewModel = StateObject(wrappedValue: GroceryListViewModel(shoppingStore: stores))
+        _foodLogViewModel = StateObject(wrappedValue: FoodLogViewModel(foodStore: stores))
         _profileStore = StateObject(wrappedValue: profileStore)
         _planStore = StateObject(wrappedValue: NutritionPlanStore())
+        _mealScheduleStore = StateObject(wrappedValue: MealScheduleStore())
         _keychainStore = StateObject(wrappedValue: keyStore)
         _reminderManager = StateObject(wrappedValue: ReminderNotificationManager())
         _watchConnector = StateObject(wrappedValue: WatchConnector.shared)
@@ -109,93 +119,81 @@ private struct RootView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 10) {
-                modeSwitcher
+        VStack(spacing: 10) {
+            modeSwitcher
 
-                TabView(selection: $selectedTab) {
-                    DashboardView(viewModel: dashboardViewModel, onQuickAdd: handleQuickAdd)
-                        .tag(AppTab.progress)
-                        .tabItem {
-                            Label("Progreso", systemImage: "chart.line.uptrend.xyaxis")
-                        }
-
-                    if appMode == .smartNutrition {
-                        PlanDailyView(
-                            planStore: planStore,
-                            onCreatePlanTap: {
-                                Task {
-                                    await ensureHealthDataLoaded()
-                                    isShowingDietaryProfile = true
-                                }
-                            },
-                            onGenerateWeeklyPlanTap: { slot, ajustes, ingredientesRefri in
-                                try await generateWeeklyPlan(slot: slot, ajustes: ajustes, ingredientesRefri: ingredientesRefri)
-                            },
-                            onGenerateWeeklyGroceryTap: { weeklyPlan, ingredientesRefri, replaceExisting in
-                                try await generateWeeklyGroceryList(for: weeklyPlan, ingredientesRefri: ingredientesRefri, replaceExisting: replaceExisting)
-                            },
-                            onAnalyzeFridgeTap: { imagesData in
-                                try await analyzeFridgeIngredients(from: imagesData)
-                            }
-                        )
-                        .tag(AppTab.plan)
-                        .tabItem {
-                            Label("Plan", systemImage: "list.bullet.clipboard")
-                        }
+            TabView(selection: $selectedTab) {
+                DashboardView(
+                    viewModel: dashboardViewModel,
+                    onQuickAdd: handleQuickAdd,
+                    onQuickAddCustomMeal: handleQuickAddCustomMeal,
+                    aiSuggestionProvider: { snapshot, goal in
+                        await requestAISmartSuggestion(for: snapshot, goal: goal)
+                    },
+                    macroTargetsProvider: { date in
+                        macroTargets(for: date)
+                    }
+                )
+                    .tag(AppTab.progress)
+                    .tabItem {
+                        Label("Progreso", systemImage: "chart.line.uptrend.xyaxis")
                     }
 
-                    CameraAnalysisView(viewModel: photoAnalyzerViewModel)
-                        .tag(AppTab.camera)
-                        .tabItem {
-                            Label("Foto", systemImage: "camera")
-                        }
+                FoodLogView(viewModel: foodLogViewModel)
+                    .tag(AppTab.foodLog)
+                    .tabItem {
+                        Label("Diario", systemImage: "list.bullet.rectangle")
+                    }
 
-                    if appMode == .smartNutrition {
-                        RecipeSuggestionView(viewModel: recipeSuggestionViewModel)
-                            .tag(AppTab.recipes)
-                            .tabItem {
-                                Label("Recetas", systemImage: "fork.knife")
+                if appMode == .smartNutrition {
+                    PlanDailyView(
+                        planStore: planStore,
+                        onCreatePlanTap: {
+                            Task {
+                                await ensureHealthDataLoaded()
+                                isShowingDietaryProfile = true
                             }
+                        },
+                        onGenerateWeeklyPlanTap: { slot, ajustes, ingredientesRefri in
+                            try await generateWeeklyPlan(slot: slot, ajustes: ajustes, ingredientesRefri: ingredientesRefri)
+                        },
+                        onGenerateWeeklyGroceryTap: { weeklyPlan, ingredientesRefri, replaceExisting in
+                            try await generateWeeklyGroceryList(for: weeklyPlan, ingredientesRefri: ingredientesRefri, replaceExisting: replaceExisting)
+                        },
+                        onAnalyzeFridgeTap: { imagesData in
+                            try await analyzeFridgeIngredients(from: imagesData)
+                        }
+                    )
+                    .tag(AppTab.plan)
+                    .tabItem {
+                        Label("Plan", systemImage: "list.bullet.clipboard")
+                    }
+                }
 
-                        GroceryListView(viewModel: groceryListViewModel) {
-                            isShowingFridgeScannerForGrocery = true
-                        }
-                        .tag(AppTab.grocery)
+                CameraAnalysisView(viewModel: photoAnalyzerViewModel)
+                    .tag(AppTab.camera)
+                    .tabItem {
+                        Label("Foto", systemImage: "camera")
+                    }
+
+                if appMode == .smartNutrition {
+                    RecipeSuggestionView(viewModel: recipeSuggestionViewModel)
+                        .tag(AppTab.recipes)
                         .tabItem {
-                            Label("Súper", systemImage: "cart")
+                            Label("Recetas", systemImage: "fork.knife")
                         }
+
+                    GroceryListView(viewModel: groceryListViewModel) {
+                        isShowingFridgeScannerForGrocery = true
+                    }
+                    .tag(AppTab.grocery)
+                    .tabItem {
+                        Label("Súper", systemImage: "cart")
                     }
                 }
             }
-
-            Button {
-                #if os(iOS)
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-                #endif
-                isShowingAISettings = true
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.35), lineWidth: 0.8)
-                        )
-
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
-                }
-                .frame(width: 56, height: 56)
-                .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
-            }
-            .buttonStyle(FloatingSettingsButtonStyle())
-            .padding(.trailing, 18)
-            .padding(.bottom, 92)
-            .accessibilityLabel("Ajustes de IA")
         }
+        .tint(.accentColor)
         .sheet(isPresented: $isShowingFridgeScannerForGrocery) {
             #if os(iOS)
             FridgeInventoryScannerView(
@@ -214,7 +212,11 @@ private struct RootView: View {
             #endif
         }
         .sheet(isPresented: $isShowingAISettings) {
-            AISettingsView(keychainStore: keychainStore, reminderManager: reminderManager) {
+            AISettingsView(
+                keychainStore: keychainStore,
+                reminderManager: reminderManager,
+                mealScheduleStore: mealScheduleStore
+            ) {
                 photoAnalyzerViewModel.updateAIClient(Self.makeAIClient(from: keychainStore))
                 recipeSuggestionViewModel.updateAIClient(Self.makeRecipeAIClient(from: keychainStore))
             } onOpenDietaryProfile: {
@@ -229,7 +231,8 @@ private struct RootView: View {
             DietaryProfileView(
                 initialProfile: profileStore.profile,
                 bodyMetrics: healthBodyMetrics,
-                planGenerator: Self.makePlanGenerator(from: keychainStore)
+                planGenerator: Self.makePlanGenerator(from: keychainStore),
+                mealScheduleStore: mealScheduleStore
             ) { updatedProfile, plan in
                 profileStore.save(profile: updatedProfile, markOnboardingDone: true)
                 planStore.save(plan)
@@ -241,6 +244,7 @@ private struct RootView: View {
         .task {
             loadAppMode()
             await ensureHealthDataLoaded()
+            await syncHydrationLogsToDiaryIfNeeded(force: true)
             if !profileStore.hasCompletedOnboarding {
                 isShowingDietaryProfile = true
             }
@@ -263,12 +267,36 @@ private struct RootView: View {
         .onChange(of: appMode) { _, newMode in
             saveAppMode(newMode)
             if newMode == .calorieCounter {
-                let allowedTabs: Set<AppTab> = [.progress, .camera]
+                let allowedTabs: Set<AppTab> = [.progress, .foodLog, .camera]
                 if !allowedTabs.contains(selectedTab) {
                     selectedTab = .progress
                 }
             }
         }
+        .onChange(of: reminderManager.loggedWaterGlasses) { _, _ in
+            Task {
+                await syncHydrationLogsToDiaryIfNeeded(force: false)
+            }
+        }
+    }
+
+    private var settingsButton: some View {
+        Button {
+            #if os(iOS)
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            #endif
+            isShowingAISettings = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+                .padding(8)
+                .background(Color.accentColor.opacity(0.12))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Ajustes de IA")
     }
 
     private var modeSwitcher: some View {
@@ -277,6 +305,7 @@ private struct RootView: View {
             Text(appMode.title)
                 .font(.subheadline.weight(.semibold))
             Spacer()
+            settingsButton
             Button {
                 appMode = appMode == .calorieCounter ? .smartNutrition : .calorieCounter
             } label: {
@@ -301,7 +330,7 @@ private struct RootView: View {
         let raw = UserDefaults.standard.string(forKey: "app.mode")
         appMode = AppMode(rawValue: raw ?? AppMode.calorieCounter.rawValue) ?? .calorieCounter
         if appMode == .calorieCounter {
-            let allowedTabs: Set<AppTab> = [.progress, .camera]
+            let allowedTabs: Set<AppTab> = [.progress, .foodLog, .camera]
             if !allowedTabs.contains(selectedTab) {
                 selectedTab = .progress
             }
@@ -310,6 +339,229 @@ private struct RootView: View {
 
     private func saveAppMode(_ mode: AppMode) {
         UserDefaults.standard.set(mode.rawValue, forKey: "app.mode")
+    }
+
+    #if os(iOS)
+    private static func configureTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.38)
+
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+        tabBar.tintColor = UIColor(Color.accentColor)
+    }
+    #endif
+
+    private func requestAISmartSuggestion(for snapshot: DailyCalorieSnapshot, goal: PrimaryGoal) async -> String? {
+        let prompt = smartSuggestionPrompt(for: snapshot, goal: goal)
+        let primary = keychainStore.primaryProvider
+
+        switch primary {
+        case .gemini:
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
+               let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .openAI), env: "OPENAI_API_KEY"),
+               let text = try? await requestOpenAISuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
+        case .openAI:
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .openAI), env: "OPENAI_API_KEY"),
+               let text = try? await requestOpenAISuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
+               let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
+        }
+
+        return nil
+    }
+
+    @MainActor
+    private func syncHydrationLogsToDiaryIfNeeded(force: Bool) async {
+        // Avoid duplicate runs on first render; force=true on initial task still executes once.
+        if hasSyncedHydrationLogs && !force { return }
+        hasSyncedHydrationLogs = true
+
+        let defaults = UserDefaults.standard
+        let processedKey = "notifications.water.loggedCount.processedToDiary"
+        let totalLogged = reminderManager.loggedWaterGlasses
+        let alreadyProcessed = defaults.integer(forKey: processedKey)
+        guard totalLogged > alreadyProcessed else { return }
+
+        let missing = totalLogged - alreadyProcessed
+        let waterItemTemplate = FoodItem(
+            name: "Vaso de agua",
+            servingDescription: "250 ml",
+            nutrition: NutritionPerServing(calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0),
+            source: "notification-water",
+            loggedAt: .now
+        )
+
+        do {
+            let existingItems = try await stores.fetchFoodItems()
+            var nextItems = existingItems
+            for _ in 0..<missing {
+                nextItems.append(
+                    FoodItem(
+                        name: waterItemTemplate.name,
+                        servingDescription: waterItemTemplate.servingDescription,
+                        nutrition: waterItemTemplate.nutrition,
+                        source: waterItemTemplate.source,
+                        loggedAt: .now
+                    )
+                )
+            }
+            try await stores.save(foodItems: nextItems)
+            defaults.set(totalLogged, forKey: processedKey)
+        } catch {
+            // Keep processed marker unchanged; next sync retries pending hydration logs.
+        }
+    }
+
+    private func normalizedKey(storeKey: String?, env: String) -> String? {
+        let value = storeKey ?? ProcessInfo.processInfo.environment[env]
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func smartSuggestionPrompt(for snapshot: DailyCalorieSnapshot, goal: PrimaryGoal) -> String {
+        let macroTarget = macroTargets(for: snapshot.date)
+        let proteinTarget = Int((macroTarget?.protein ?? 0).rounded())
+        let carbsTarget = Int((macroTarget?.carbs ?? 0).rounded())
+        let fatTarget = Int((macroTarget?.fat ?? 0).rounded())
+        let proteinActual = Int(snapshot.consumedProteinGrams.rounded())
+        let carbsActual = Int(snapshot.consumedCarbsGrams.rounded())
+        let fatActual = Int(snapshot.consumedFatGrams.rounded())
+
+        return """
+        Eres un nutriólogo deportivo. Genera una sugerencia breve (máximo 2 frases) en español, clara y accionable.
+        Contexto del día:
+        - Objetivo: \(goalText(goal))
+        - Consumidas: \(Int(snapshot.consumedKcal.rounded())) kcal
+        - Meta base diaria: \(Int(snapshot.targetKcal.rounded())) kcal
+        - Quemadas activas (ejercicio): \(Int(snapshot.activeBurnedKcal.rounded())) kcal
+        - Quemadas basales (informativo): \(Int(snapshot.basalBurnedKcal.rounded())) kcal
+        - Meta ajustada (meta base + activas): \(Int((snapshot.targetKcal + snapshot.activeBurnedKcal).rounded())) kcal
+        - Desviación ajustada (consumidas - meta ajustada): \(Int((snapshot.consumedKcal - (snapshot.targetKcal + snapshot.activeBurnedKcal)).rounded())) kcal
+        - Proteína: \(proteinActual)g / \(proteinTarget)g
+        - Carbohidratos: \(carbsActual)g / \(carbsTarget)g
+        - Grasas: \(fatActual)g / \(fatTarget)g
+
+        Prioriza recomendaciones sobre balance calórico y macros (si hay desvíos relevantes, menciónalos).
+        Responde solo texto plano, sin markdown ni bullets.
+        """
+    }
+
+    private func goalText(_ goal: PrimaryGoal) -> String {
+        switch goal {
+        case .loseFat: return "Perder grasa"
+        case .maintain: return "Mantener peso"
+        case .gainMuscle: return "Ganar masa muscular"
+        }
+    }
+
+    private func macroTargets(for date: Date) -> (protein: Double, carbs: Double, fat: Double)? {
+        _ = date
+        if let weekly = planStore.weeklyPlan(for: .current) {
+            return (
+                protein: Double(weekly.proteinaObjetivoGramos),
+                carbs: Double(weekly.carbohidratosObjetivoGramos),
+                fat: Double(weekly.grasasObjetivoGramos)
+            )
+        }
+        if let daily = planStore.currentPlan {
+            return (
+                protein: Double(daily.proteinaGramos),
+                carbs: Double(daily.carbohidratosGramos),
+                fat: Double(daily.grasasGramos)
+            )
+        }
+        return nil
+    }
+
+    private func requestGeminiSuggestion(prompt: String, apiKey: String) async throws -> String? {
+        let body: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt]
+                    ]
+                ]
+            ]
+        ]
+
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(apiKey)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            return nil
+        }
+        guard
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let candidates = json["candidates"] as? [[String: Any]],
+            let content = candidates.first?["content"] as? [String: Any],
+            let parts = content["parts"] as? [[String: Any]],
+            let text = parts.first?["text"] as? String
+        else {
+            return nil
+        }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func requestOpenAISuggestion(prompt: String, apiKey: String) async throws -> String? {
+        let body: [String: Any] = [
+            "model": "gpt-4.1-mini",
+            "input": [
+                [
+                    "role": "user",
+                    "content": [
+                        ["type": "input_text", "text": prompt]
+                    ]
+                ]
+            ]
+        ]
+
+        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/responses")!)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            return nil
+        }
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        if let outputText = json["output_text"] as? String {
+            let trimmed = outputText.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        if
+            let output = json["output"] as? [[String: Any]],
+            let firstItem = output.first,
+            let content = firstItem["content"] as? [[String: Any]],
+            let firstContent = content.first,
+            let text = firstContent["text"] as? String
+        {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        return nil
     }
 
     @MainActor
@@ -399,16 +651,52 @@ private struct RootView: View {
         }
     }
 
+    private func handleQuickAddCustomMeal(_ calories: Double) {
+        Task {
+            await registerCustomQuickMeal(calories: calories)
+        }
+    }
+
     @MainActor
     private func registerQuickAdd(_ kind: DashboardView.QuickAddKind) async {
         let preset = QuickAddPreset.from(kind)
+
+        do {
+            // Always persist quick-add events in local diary, including 0 kcal items like water.
+            try await saveFoodRecord(for: preset)
+
+            if preset.calories > 0 {
+                try await healthStore.saveDietaryEnergy(kilocalories: preset.calories, at: .now)
+            }
+
+            await dashboardViewModel.refresh()
+            #if os(iOS)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            #endif
+        } catch {
+            #if os(iOS)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+        }
+    }
+
+    @MainActor
+    private func registerCustomQuickMeal(calories: Double) async {
+        let safeCalories = max(0, calories)
+        let preset = QuickAddPreset(
+            name: "Comida estándar",
+            servingDescription: "Registro rápido",
+            calories: safeCalories,
+            proteinGrams: 0,
+            carbsGrams: 0,
+            fatGrams: 0
+        )
 
         do {
             if preset.calories > 0 {
                 try await healthStore.saveDietaryEnergy(kilocalories: preset.calories, at: .now)
                 try await saveFoodRecord(for: preset)
             }
-
             await dashboardViewModel.refresh()
             #if os(iOS)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -431,7 +719,14 @@ private struct RootView: View {
             meta: profile.primaryGoal,
             diasGym: 4,
             preferenciaAlimenticia: "Ninguna",
-            alergias: ""
+            alergias: "",
+            horarios: NutritionMealSchedule(
+                desayuno: mealScheduleStore.breakfastTime,
+                colacion1: mealScheduleStore.snack1Time,
+                comida: mealScheduleStore.lunchTime,
+                colacion2: mealScheduleStore.snack2Time,
+                cena: mealScheduleStore.dinnerTime
+            )
         )
     }
 

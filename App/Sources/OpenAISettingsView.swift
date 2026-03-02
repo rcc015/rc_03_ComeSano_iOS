@@ -8,6 +8,7 @@ import UIKit
 struct AISettingsView: View {
     @ObservedObject var keychainStore: AIKeychainStore
     @ObservedObject var reminderManager: ReminderNotificationManager
+    @ObservedObject var mealScheduleStore: MealScheduleStore
     let onConfigurationChanged: () -> Void
     let onOpenDietaryProfile: () -> Void
 
@@ -78,6 +79,44 @@ struct AISettingsView: View {
                     }
                 }
 
+                Section("Horarios de consumo (Plan)") {
+                    timePickerRow(
+                        title: "Desayuno",
+                        hour: $mealScheduleStore.breakfastHour,
+                        minute: $mealScheduleStore.breakfastMinute
+                    )
+                    timePickerRow(
+                        title: "Colación 1",
+                        hour: $mealScheduleStore.snack1Hour,
+                        minute: $mealScheduleStore.snack1Minute
+                    )
+                    timePickerRow(
+                        title: "Comida",
+                        hour: $mealScheduleStore.lunchHour,
+                        minute: $mealScheduleStore.lunchMinute
+                    )
+                    timePickerRow(
+                        title: "Colación 2",
+                        hour: $mealScheduleStore.snack2Hour,
+                        minute: $mealScheduleStore.snack2Minute
+                    )
+                    timePickerRow(
+                        title: "Cena",
+                        hour: $mealScheduleStore.dinnerHour,
+                        minute: $mealScheduleStore.dinnerMinute
+                    )
+
+                    Button("Guardar horarios") {
+                        mealScheduleStore.save()
+                        reminderStatusMessage = "Horarios de plan guardados."
+                    }
+
+                    Button("Restablecer horarios por default", role: .destructive) {
+                        mealScheduleStore.resetDefaults()
+                        reminderStatusMessage = "Horarios restablecidos."
+                    }
+                }
+
                 Section("Recordatorios") {
                     Text("Permiso: \(notificationPermissionText(reminderManager.authorizationStatus))")
                         .foregroundStyle(.secondary)
@@ -110,9 +149,11 @@ struct AISettingsView: View {
                     )
                     .disabled(!reminderManager.mealReminderEnabled)
 
+                    Toggle("Plan completo (desayuno, colaciones, comida y cena)", isOn: $reminderManager.nutritionPlanRemindersEnabled)
+
                     Button("Aplicar recordatorios") {
                         Task {
-                            await reminderManager.applyCurrentSchedule()
+                            await reminderManager.applyCurrentSchedule(mealSchedule: mealScheduleStore)
                             reminderStatusMessage = "Recordatorios actualizados."
                         }
                     }
@@ -202,4 +243,29 @@ struct AISettingsView: View {
         UIApplication.shared.open(url)
     }
     #endif
+
+    @ViewBuilder
+    private func timePickerRow(title: String, hour: Binding<Int>, minute: Binding<Int>) -> some View {
+        DatePicker(
+            title,
+            selection: Binding(
+                get: {
+                    makeDate(hour: hour.wrappedValue, minute: minute.wrappedValue)
+                },
+                set: { newValue in
+                    let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                    hour.wrappedValue = components.hour ?? hour.wrappedValue
+                    minute.wrappedValue = components.minute ?? minute.wrappedValue
+                }
+            ),
+            displayedComponents: .hourAndMinute
+        )
+    }
+
+    private func makeDate(hour: Int, minute: Int) -> Date {
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: .now)
+        components.hour = hour
+        components.minute = minute
+        return Calendar.current.date(from: components) ?? .now
+    }
 }
