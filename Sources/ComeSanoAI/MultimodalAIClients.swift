@@ -27,6 +27,7 @@ extension AIClientError: LocalizedError {
 public enum AIProviderChoice: String, CaseIterable, Sendable {
     case openAI
     case gemini
+    case backend
 }
 
 public enum OpenAIModel: String, Sendable {
@@ -58,6 +59,15 @@ public struct NutritionAIClientFactory {
         return GeminiNutritionClient(networkManager: network)
     }
 
+    public static func makeBackend(
+        baseURL: URL,
+        sessionToken: String,
+        urlSession: URLSession = .shared
+    ) -> MultimodalNutritionInference {
+        let network = BackendNetworkManager(baseURL: baseURL, sessionToken: sessionToken, session: urlSession)
+        return BackendNutritionClient(networkManager: network)
+    }
+
     public static func makeWithFallback(primary: MultimodalNutritionInference, secondary: MultimodalNutritionInference?) -> MultimodalNutritionInference {
         FallbackNutritionClient(primary: primary, secondary: secondary)
     }
@@ -78,6 +88,15 @@ public struct NutritionAIClientFactory {
     ) -> MultimodalRecipeInference {
         let network = GeminiNetworkManager(apiKey: apiKey, model: model.rawValue, session: urlSession)
         return GeminiRecipeClient(networkManager: network)
+    }
+
+    public static func makeBackendRecipe(
+        baseURL: URL,
+        sessionToken: String,
+        urlSession: URLSession = .shared
+    ) -> MultimodalRecipeInference {
+        let network = BackendNetworkManager(baseURL: baseURL, sessionToken: sessionToken, session: urlSession)
+        return BackendRecipeClient(networkManager: network)
     }
 
     public static func makeRecipeWithFallback(primary: MultimodalRecipeInference, secondary: MultimodalRecipeInference?) -> MultimodalRecipeInference {
@@ -235,6 +254,73 @@ public struct GeminiNetworkManager: ProviderNetworkManaging, Sendable {
     }
 }
 
+public struct BackendNetworkManager: ProviderNetworkManaging, Sendable {
+    private let baseURL: URL
+    private let sessionToken: String
+    private let session: URLSession
+
+    public init(baseURL: URL, sessionToken: String, session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.sessionToken = sessionToken
+        self.session = session
+    }
+
+    public func analyzeImage(base64JPEG: String, prompt: String) async throws -> String {
+        try await analyzeImages(base64JPEGs: [base64JPEG], prompt: prompt)
+    }
+
+    public func analyzeImages(base64JPEGs: [String], prompt: String) async throws -> String {
+        let trimmedToken = sessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedToken.isEmpty else {
+            throw AIClientError.missingAPIKey(provider: "Backend")
+        }
+
+        let endpoint = URL(string: "/v1/ai/nutrition/analyze", relativeTo: baseURL)!
+        let body: [String: Any] = [
+            "prompt": prompt,
+            "imagesBase64": base64JPEGs
+        ]
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(trimmedToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (responseData, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw AIClientError.invalidResponse(provider: "Backend", statusCode: -1, message: "Respuesta HTTP inválida.")
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let message = String(decoding: responseData, as: UTF8.self)
+            throw AIClientError.invalidResponse(provider: "Backend", statusCode: http.statusCode, message: message)
+        }
+
+        if let text = Self.extractString(from: responseData) {
+            return text
+        }
+
+        throw AIClientError.missingContent(provider: "Backend")
+    }
+
+    static func extractString(from data: Data) -> String? {
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let text = json["output_text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            if let text = json["content"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            if let text = json["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+        }
+
+        let raw = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw.isEmpty ? nil : raw
+    }
+}
+
 public struct OpenAINutritionClient: MultimodalNutritionInference, Sendable {
     private let networkManager: ProviderNetworkManaging
 
@@ -270,6 +356,26 @@ public struct GeminiNutritionClient: MultimodalNutritionInference, Sendable {
 
         guard let jsonData = jsonText.data(using: .utf8) else {
             throw AIClientError.invalidPayload(provider: "Gemini", rawText: rawText)
+        }
+        return try JSONDecoder().decode(NutritionInferenceResult.self, from: jsonData)
+    }
+}
+
+public struct BackendNutritionClient: MultimodalNutritionInference, Sendable {
+    private let networkManager: ProviderNetworkManaging
+
+    public init(networkManager: ProviderNetworkManaging) {
+        self.networkManager = networkManager
+    }
+
+    public func inferNutrition(fromImageData data: Data, prompt: String) async throws -> NutritionInferenceResult {
+        let imageBase64 = data.base64EncodedString()
+        let finalPrompt = NutritionPromptBuilder.systemInstruction + "\n\n" + NutritionPromptBuilder.userPrompt(extraInstruction: prompt)
+        let rawText = try await networkManager.analyzeImage(base64JPEG: imageBase64, prompt: finalPrompt)
+        let jsonText = try JSONExtractor.extractJSONObject(from: rawText, provider: "Backend")
+
+        guard let jsonData = jsonText.data(using: .utf8) else {
+            throw AIClientError.invalidPayload(provider: "Backend", rawText: rawText)
         }
         return try JSONDecoder().decode(NutritionInferenceResult.self, from: jsonData)
     }
@@ -338,6 +444,29 @@ public struct GeminiRecipeClient: MultimodalRecipeInference, Sendable {
 
         guard let jsonData = jsonText.data(using: .utf8) else {
             throw AIClientError.invalidPayload(provider: "Gemini", rawText: rawText)
+        }
+        return try JSONDecoder().decode([RecipeSuggestion].self, from: jsonData)
+    }
+}
+
+public struct BackendRecipeClient: MultimodalRecipeInference, Sendable {
+    private let networkManager: ProviderNetworkManaging
+
+    public init(networkManager: ProviderNetworkManaging) {
+        self.networkManager = networkManager
+    }
+
+    public func inferRecipes(fromImageData images: [Data], prompt: String) async throws -> [RecipeSuggestion] {
+        guard !images.isEmpty else {
+            throw AIClientError.invalidPayload(provider: "Backend", rawText: "Sin imágenes para analizar.")
+        }
+        let base64Images = images.map { $0.base64EncodedString() }
+        let finalPrompt = RecipePromptBuilder.systemInstruction + "\n\n" + RecipePromptBuilder.userPrompt(extraInstruction: prompt)
+        let rawText = try await networkManager.analyzeImages(base64JPEGs: base64Images, prompt: finalPrompt)
+        let jsonText = try JSONExtractor.extractJSONArray(from: rawText, provider: "Backend")
+
+        guard let jsonData = jsonText.data(using: .utf8) else {
+            throw AIClientError.invalidPayload(provider: "Backend", rawText: rawText)
         }
         return try JSONDecoder().decode([RecipeSuggestion].self, from: jsonData)
     }

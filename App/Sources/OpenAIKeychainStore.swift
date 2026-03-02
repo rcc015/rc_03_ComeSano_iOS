@@ -6,7 +6,9 @@ import ComeSanoAI
 final class AIKeychainStore: ObservableObject {
     @Published private(set) var hasOpenAIKey = false
     @Published private(set) var hasGeminiKey = false
+    @Published private(set) var hasBackendSession = false
     @Published var primaryProvider: AIProviderChoice
+    @Published var backendBaseURL: String
 
     private let service: String
 
@@ -14,7 +16,8 @@ final class AIKeychainStore: ObservableObject {
         self.service = service
 
         let savedProviderRaw = UserDefaults.standard.string(forKey: "ai_primary_provider")
-        self.primaryProvider = AIProviderChoice(rawValue: savedProviderRaw ?? "gemini") ?? .gemini
+        self.primaryProvider = AIProviderChoice(rawValue: savedProviderRaw ?? "backend") ?? .backend
+        self.backendBaseURL = UserDefaults.standard.string(forKey: "backend_base_url") ?? "http://localhost:8080"
 
         refreshFlags()
     }
@@ -22,6 +25,7 @@ final class AIKeychainStore: ObservableObject {
     func refreshFlags() {
         hasOpenAIKey = key(for: .openAI) != nil
         hasGeminiKey = key(for: .gemini) != nil
+        hasBackendSession = backendSessionToken() != nil
     }
 
     func key(for provider: AIProviderChoice) -> String? {
@@ -104,12 +108,40 @@ final class AIKeychainStore: ObservableObject {
         UserDefaults.standard.set(provider.rawValue, forKey: "ai_primary_provider")
     }
 
+    func saveBackendBaseURL(_ value: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        backendBaseURL = trimmed
+        UserDefaults.standard.set(trimmed, forKey: "backend_base_url")
+    }
+
+    func backendURL() -> URL? {
+        let trimmed = backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    func backendSessionToken() -> String? {
+        key(for: .backend)
+    }
+
+    func saveBackendSessionToken(_ token: String) throws {
+        try saveKey(token, for: .backend)
+        refreshFlags()
+    }
+
+    func deleteBackendSessionToken() throws {
+        try deleteKey(for: .backend)
+        refreshFlags()
+    }
+
     private func account(for provider: AIProviderChoice) -> String {
         switch provider {
         case .openAI:
             return "openai_api_key"
         case .gemini:
             return "gemini_api_key"
+        case .backend:
+            return "backend_session_token"
         }
     }
 }

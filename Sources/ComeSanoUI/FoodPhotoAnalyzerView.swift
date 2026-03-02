@@ -12,6 +12,7 @@ public struct FoodPhotoAnalyzerView: View {
     @State private var pickerSource: ImagePickerSource?
     @State private var userInstruction = ""
     @State private var showSaveConfirmation = false
+    @FocusState private var isInstructionFocused: Bool
 
     public init(viewModel: FoodPhotoAnalyzerViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -43,6 +44,7 @@ public struct FoodPhotoAnalyzerView: View {
                 Section("Instrucción") {
                     TextField("Ej: prioriza comidas altas en proteína", text: $userInstruction, axis: .vertical)
                         .lineLimit(2...5)
+                        .focused($isInstructionFocused)
                 }
 
                 Section {
@@ -139,10 +141,18 @@ public struct FoodPhotoAnalyzerView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    dismissKeyboard()
+                }
+            )
             .navigationTitle("Analizar Foto")
             .sheet(item: $pickerSource) { source in
                 SourceImagePicker(source: source.uiKitSourceType) { image in
                     if let image {
+                        dismissKeyboard()
+                        resetForNewImage()
                         previewImage = image
                         imageData = image.jpegData(compressionQuality: 0.85)
                     }
@@ -161,6 +171,17 @@ public struct FoodPhotoAnalyzerView: View {
                 }
             }
         }
+    }
+
+    private func resetForNewImage() {
+        userInstruction = ""
+        showSaveConfirmation = false
+        viewModel.resetAnalysisState()
+    }
+
+    private func dismissKeyboard() {
+        isInstructionFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

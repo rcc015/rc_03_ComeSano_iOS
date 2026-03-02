@@ -418,6 +418,20 @@ private struct RootView: View {
         let primary = keychainStore.primaryProvider
 
         switch primary {
+        case .backend:
+            if let token = keychainStore.backendSessionToken(),
+               let backendURL = keychainStore.backendURL(),
+               let text = try? await requestBackendSuggestion(prompt: prompt, baseURL: backendURL, sessionToken: token) {
+                return text
+            }
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
+               let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
+            if let key = normalizedKey(storeKey: keychainStore.key(for: .openAI), env: "OPENAI_API_KEY"),
+               let text = try? await requestOpenAISuggestion(prompt: prompt, apiKey: key) {
+                return text
+            }
         case .gemini:
             if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
                let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
@@ -647,6 +661,38 @@ private struct RootView: View {
         return nil
     }
 
+    private func requestBackendSuggestion(prompt: String, baseURL: URL, sessionToken: String) async throws -> String? {
+        let body: [String: Any] = [
+            "prompt": prompt
+        ]
+
+        let endpoint = URL(string: "/v1/ai/suggestions", relativeTo: baseURL)!
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            return nil
+        }
+
+        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let value = json["text"] as? String {
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { return trimmed }
+            }
+            if let value = json["content"] as? String {
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { return trimmed }
+            }
+        }
+
+        let fallback = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        return fallback.isEmpty ? nil : fallback
+    }
+
     @MainActor
     private func ensureHealthDataLoaded() async {
         guard !hasRequestedHealthAuthorization else { return }
@@ -665,6 +711,8 @@ private struct RootView: View {
     private static func makeAIClient(from store: AIKeychainStore) -> MultimodalNutritionInference {
         let openAIKey = store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
         let geminiKey = store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+        let backendToken = store.backendSessionToken()
+        let backendURL = store.backendURL()
 
         let openAIClient = openAIKey.flatMap { key -> MultimodalNutritionInference? in
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -676,7 +724,20 @@ private struct RootView: View {
             return NutritionAIClientFactory.makeGemini(apiKey: key, model: .gemini25Flash)
         }
 
+        let backendClient: MultimodalNutritionInference? = {
+            guard let backendURL, let backendToken else { return nil }
+            guard !backendToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return NutritionAIClientFactory.makeBackend(baseURL: backendURL, sessionToken: backendToken)
+        }()
+
         switch store.primaryProvider {
+        case .backend:
+            guard let backendClient else {
+                return EmptyNutritionInference(
+                    message: "Proveedor Cuenta seleccionado, pero no hay sesión backend activa."
+                )
+            }
+            return backendClient
         case .openAI:
             guard let openAIClient else {
                 return EmptyNutritionInference(
@@ -697,6 +758,8 @@ private struct RootView: View {
     private static func makeRecipeAIClient(from store: AIKeychainStore) -> MultimodalRecipeInference {
         let openAIKey = store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
         let geminiKey = store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+        let backendToken = store.backendSessionToken()
+        let backendURL = store.backendURL()
 
         let openAIClient = openAIKey.flatMap { key -> MultimodalRecipeInference? in
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -708,7 +771,17 @@ private struct RootView: View {
             return NutritionAIClientFactory.makeGeminiRecipe(apiKey: key, model: .gemini25Flash)
         }
 
+        let backendClient: MultimodalRecipeInference? = {
+            guard let backendURL, let backendToken else { return nil }
+            guard !backendToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return NutritionAIClientFactory.makeBackendRecipe(baseURL: backendURL, sessionToken: backendToken)
+        }()
+
         switch store.primaryProvider {
+        case .backend:
+            return backendClient ?? EmptyRecipeInference(
+                message: "Proveedor Cuenta seleccionado, pero no hay sesión backend activa."
+            )
         case .openAI:
             return openAIClient ?? EmptyRecipeInference(
                 message: "Proveedor principal OpenAI seleccionado, pero no hay OPENAI_API_KEY configurada en IA."
@@ -724,7 +797,9 @@ private struct RootView: View {
         NutritionPlanRemoteGenerator(
             primaryProvider: store.primaryProvider,
             openAIKey: store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"],
-            geminiKey: store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+            geminiKey: store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"],
+            backendBaseURL: store.backendURL(),
+            backendSessionToken: store.backendSessionToken()
         )
     }
 

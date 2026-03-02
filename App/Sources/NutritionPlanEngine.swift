@@ -282,6 +282,8 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
     let primaryProvider: AIProviderChoice
     let openAIKey: String?
     let geminiKey: String?
+    let backendBaseURL: URL?
+    let backendSessionToken: String?
     let openAIModel: String
     let geminiModel: String
     let session: URLSession
@@ -290,6 +292,8 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         primaryProvider: AIProviderChoice,
         openAIKey: String?,
         geminiKey: String?,
+        backendBaseURL: URL? = nil,
+        backendSessionToken: String? = nil,
         openAIModel: String = "gpt-4.1-mini",
         geminiModel: String = "gemini-2.5-flash",
         session: URLSession = .shared
@@ -297,6 +301,8 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         self.primaryProvider = primaryProvider
         self.openAIKey = openAIKey
         self.geminiKey = geminiKey
+        self.backendBaseURL = backendBaseURL
+        self.backendSessionToken = backendSessionToken
         self.openAIModel = openAIModel
         self.geminiModel = geminiModel
         self.session = session
@@ -306,6 +312,16 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         let prompt = NutritionPlanPromptBuilder.prompt(for: profile)
 
         switch primaryProvider {
+        case .backend:
+            if let url = normalizedURL(backendBaseURL), let token = normalized(backendSessionToken) {
+                return try await generateWithBackend(prompt: prompt, baseURL: url, sessionToken: token)
+            }
+            if let key = normalized(geminiKey) {
+                return try await generateWithGemini(prompt: prompt, apiKey: key)
+            }
+            if let key = normalized(openAIKey) {
+                return try await generateWithOpenAI(prompt: prompt, apiKey: key)
+            }
         case .gemini:
             if let key = normalized(geminiKey) {
                 return try await generateWithGemini(prompt: prompt, apiKey: key)
@@ -329,6 +345,16 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         let prompt = NutritionPlanPromptBuilder.weeklyPrompt(for: input)
 
         switch primaryProvider {
+        case .backend:
+            if let url = normalizedURL(backendBaseURL), let token = normalized(backendSessionToken) {
+                return try await generateWeeklyWithBackend(prompt: prompt, baseURL: url, sessionToken: token)
+            }
+            if let key = normalized(geminiKey) {
+                return try await generateWeeklyWithGemini(prompt: prompt, apiKey: key)
+            }
+            if let key = normalized(openAIKey) {
+                return try await generateWeeklyWithOpenAI(prompt: prompt, apiKey: key)
+            }
         case .gemini:
             if let key = normalized(geminiKey) {
                 return try await generateWeeklyWithGemini(prompt: prompt, apiKey: key)
@@ -353,6 +379,16 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
 
         let rawText: String
         switch primaryProvider {
+        case .backend:
+            if let url = normalizedURL(backendBaseURL), let token = normalized(backendSessionToken) {
+                rawText = try await generateTextWithBackend(prompt: prompt, path: "/v1/ai/weekly-shopping", baseURL: url, sessionToken: token)
+            } else if let key = normalized(geminiKey) {
+                rawText = try await generateTextWithGemini(prompt: prompt, apiKey: key)
+            } else if let key = normalized(openAIKey) {
+                rawText = try await generateTextWithOpenAI(prompt: prompt, apiKey: key)
+            } else {
+                throw NutritionPlanGenerationError.missingAPIKey
+            }
         case .gemini:
             if let key = normalized(geminiKey) {
                 rawText = try await generateTextWithGemini(prompt: prompt, apiKey: key)
@@ -383,6 +419,13 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         guard let key else { return nil }
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func normalizedURL(_ url: URL?) -> URL? {
+        guard let url else { return nil }
+        let trimmed = url.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
     }
 
     private func generateTextWithGemini(prompt: String, apiKey: String) async throws -> String {
@@ -454,6 +497,41 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         return text
     }
 
+    private func generateTextWithBackend(prompt: String, path: String, baseURL: URL, sessionToken: String) async throws -> String {
+        let body: [String: Any] = ["prompt": prompt]
+        let endpoint = URL(string: path, relativeTo: baseURL)!
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NutritionPlanGenerationError.invalidResponse(message: "Respuesta HTTP inválida.")
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let raw = String(decoding: data, as: UTF8.self)
+            throw NutritionPlanGenerationError.invalidResponse(message: "Backend \(http.statusCode): \(raw)")
+        }
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let text = json["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            if let text = json["content"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            if let text = json["output_text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+        }
+
+        let raw = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { throw NutritionPlanGenerationError.invalidPayload }
+        return raw
+    }
+
     private func generateWeeklyWithGemini(prompt: String, apiKey: String) async throws -> WeeklyNutritionPlan {
         let rawText = try await generateTextWithGemini(prompt: prompt, apiKey: apiKey)
         let jsonText = try JSONExtractor.extractJSONObject(from: rawText, provider: "Gemini")
@@ -495,6 +573,30 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
             recomendaciones: plan.recomendaciones,
             createdAt: .now,
             source: "openai"
+        )
+        guard plan.dias.count == 7 else {
+            throw NutritionPlanGenerationError.invalidPayload
+        }
+        return plan
+    }
+
+    private func generateWeeklyWithBackend(prompt: String, baseURL: URL, sessionToken: String) async throws -> WeeklyNutritionPlan {
+        let rawText = try await generateTextWithBackend(prompt: prompt, path: "/v1/ai/weekly-plan", baseURL: baseURL, sessionToken: sessionToken)
+        let jsonText = try JSONExtractor.extractJSONObject(from: rawText, provider: "Backend")
+        guard let jsonData = jsonText.data(using: .utf8) else {
+            throw NutritionPlanGenerationError.invalidPayload
+        }
+
+        var plan = try JSONDecoder().decode(WeeklyNutritionPlan.self, from: jsonData)
+        plan = WeeklyNutritionPlan(
+            caloriasObjetivoDiarias: plan.caloriasObjetivoDiarias,
+            proteinaObjetivoGramos: plan.proteinaObjetivoGramos,
+            carbohidratosObjetivoGramos: plan.carbohidratosObjetivoGramos,
+            grasasObjetivoGramos: plan.grasasObjetivoGramos,
+            dias: plan.dias,
+            recomendaciones: plan.recomendaciones,
+            createdAt: .now,
+            source: "backend"
         )
         guard plan.dias.count == 7 else {
             throw NutritionPlanGenerationError.invalidPayload
@@ -548,6 +650,29 @@ struct NutritionPlanRemoteGenerator: NutritionPlanGenerating {
         return plan
     }
 
+    private func generateWithBackend(prompt: String, baseURL: URL, sessionToken: String) async throws -> NutritionPlan {
+        let rawText = try await generateTextWithBackend(prompt: prompt, path: "/v1/ai/daily-plan", baseURL: baseURL, sessionToken: sessionToken)
+        let jsonText = try JSONExtractor.extractJSONObject(from: rawText, provider: "Backend")
+        guard let jsonData = jsonText.data(using: .utf8) else {
+            throw NutritionPlanGenerationError.invalidPayload
+        }
+        var plan = try JSONDecoder().decode(NutritionPlan.self, from: jsonData)
+        plan = NutritionPlan(
+            caloriasDiarias: plan.caloriasDiarias,
+            proteinaGramos: plan.proteinaGramos,
+            carbohidratosGramos: plan.carbohidratosGramos,
+            grasasGramos: plan.grasasGramos,
+            desayuno: plan.desayuno,
+            colacion1: plan.colacion1,
+            comida: plan.comida,
+            colacion2: plan.colacion2,
+            cena: plan.cena,
+            createdAt: .now,
+            source: "backend"
+        )
+        return plan
+    }
+
     private static func normalizeShoppingItems(_ items: [ShoppingListItem]) -> [ShoppingListItem] {
         var map: [String: ShoppingListItem] = [:]
         for item in items {
@@ -585,7 +710,7 @@ enum NutritionPlanGenerationError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "No hay API key configurada para generar plan."
+            return "No hay credenciales configuradas para generar plan (API key o sesión backend)."
         case let .invalidResponse(message):
             return "La IA no respondió correctamente: \(message)"
         case .invalidPayload:

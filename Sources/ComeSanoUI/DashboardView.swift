@@ -130,7 +130,6 @@ public struct DashboardView: View {
             }
             .alert("Comida estándar", isPresented: $isShowingCustomMealPrompt) {
                 TextField("Calorías", text: $customMealCaloriesText)
-                    .keyboardType(.numberPad)
 
                 Button("Cancelar", role: .cancel) {}
                 Button("Agregar") {

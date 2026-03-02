@@ -14,8 +14,13 @@ struct AISettingsView: View {
 
     @State private var openAIKeyInput = ""
     @State private var geminiKeyInput = ""
+    @State private var backendBaseURLInput = ""
+    @State private var isLoggingInBackend = false
     @State private var statusMessage: String?
     @State private var reminderStatusMessage: String?
+    #if os(iOS)
+    @StateObject private var backendAuthenticator = BackendWebAuthenticator()
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -30,8 +35,9 @@ struct AISettingsView: View {
                     )) {
                         Text("OpenAI").tag(AIProviderChoice.openAI)
                         Text("Gemini").tag(AIProviderChoice.gemini)
+                        Text("Cuenta").tag(AIProviderChoice.backend)
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                 }
 
                 Section("OpenAI API Key") {
@@ -67,10 +73,53 @@ struct AISettingsView: View {
                 Section("Estado") {
                     Text("OpenAI: \(keychainStore.hasOpenAIKey ? "configurada" : "sin key")")
                     Text("Gemini: \(keychainStore.hasGeminiKey ? "configurada" : "sin key")")
+                    Text("Cuenta backend: \(keychainStore.hasBackendSession ? "activa" : "sin sesión")")
                     if let statusMessage {
                         Text(statusMessage)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                Section("Cuenta ComeSano (Backend)") {
+                    TextField("URL backend (ej. https://api.comesano.app)", text: $backendBaseURLInput)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+
+                    Button("Guardar URL backend") {
+                        keychainStore.saveBackendBaseURL(backendBaseURLInput)
+                        onConfigurationChanged()
+                        statusMessage = "URL backend guardada."
+                    }
+
+                    #if os(iOS)
+                    Button {
+                        Task {
+                            await loginWithGoogle()
+                        }
+                    } label: {
+                        if isLoggingInBackend {
+                            ProgressView()
+                        } else {
+                            Text("Iniciar sesión con Google")
+                        }
+                    }
+                    .disabled(isLoggingInBackend)
+                    #else
+                    Text("El login web de backend solo está disponible en iOS.")
+                        .foregroundStyle(.secondary)
+                    #endif
+
+                    Button("Cerrar sesión backend", role: .destructive) {
+                        do {
+                            try keychainStore.deleteBackendSessionToken()
+                            onConfigurationChanged()
+                            statusMessage = "Sesión backend eliminada."
+                        } catch {
+                            statusMessage = error.localizedDescription
+                        }
+                    }
+                    .disabled(!keychainStore.hasBackendSession)
                 }
 
                 Section("Plan Nutricional") {
@@ -188,6 +237,9 @@ struct AISettingsView: View {
                 if geminiKeyInput.isEmpty, let existing = keychainStore.key(for: .gemini) {
                     geminiKeyInput = existing
                 }
+                if backendBaseURLInput.isEmpty {
+                    backendBaseURLInput = keychainStore.backendBaseURL
+                }
                 Task {
                     await reminderManager.refreshAuthorizationStatus()
                 }
@@ -199,7 +251,14 @@ struct AISettingsView: View {
         do {
             try keychainStore.saveKey(value, for: provider)
             onConfigurationChanged()
-            statusMessage = "API key de \(provider == .openAI ? "OpenAI" : "Gemini") guardada correctamente."
+            switch provider {
+            case .openAI:
+                statusMessage = "API key de OpenAI guardada correctamente."
+            case .gemini:
+                statusMessage = "API key de Gemini guardada correctamente."
+            case .backend:
+                statusMessage = "Token backend guardado correctamente."
+            }
         } catch {
             statusMessage = error.localizedDescription
         }
@@ -208,13 +267,45 @@ struct AISettingsView: View {
     private func deleteKey(provider: AIProviderChoice) {
         do {
             try keychainStore.deleteKey(for: provider)
-            if provider == .openAI { openAIKeyInput = "" } else { geminiKeyInput = "" }
+            switch provider {
+            case .openAI:
+                openAIKeyInput = ""
+            case .gemini:
+                geminiKeyInput = ""
+            case .backend:
+                break
+            }
             onConfigurationChanged()
-            statusMessage = "API key eliminada."
+            statusMessage = "Credencial eliminada."
         } catch {
             statusMessage = error.localizedDescription
         }
     }
+
+    #if os(iOS)
+    @MainActor
+    private func loginWithGoogle() async {
+        let trimmed = backendBaseURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), !trimmed.isEmpty else {
+            statusMessage = "Configura una URL backend válida antes de iniciar sesión."
+            return
+        }
+
+        isLoggingInBackend = true
+        defer { isLoggingInBackend = false }
+
+        do {
+            keychainStore.saveBackendBaseURL(trimmed)
+            let token = try await backendAuthenticator.signInWithGoogle(baseURL: url)
+            try keychainStore.saveBackendSessionToken(token)
+            keychainStore.savePrimaryProvider(.backend)
+            onConfigurationChanged()
+            statusMessage = "Sesión backend iniciada correctamente."
+        } catch {
+            statusMessage = "No se pudo iniciar sesión: \(error.localizedDescription)"
+        }
+    }
+    #endif
 
     private func mealDateFromStoredTime() -> Date {
         var components = Calendar.current.dateComponents([.year, .month, .day], from: .now)

@@ -127,6 +127,22 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
         await analyze(imageData: lastImageData, userInstruction: lastUserInstruction)
     }
 
+    public func resetAnalysisState() {
+        result = nil
+        errorMessage = nil
+        saveMessage = nil
+        saveErrorMessage = nil
+        shoppingSaveMessage = nil
+        shoppingSaveErrorMessage = nil
+        retryAfterSeconds = nil
+        isLoading = false
+        isSaving = false
+        lastImageData = nil
+        lastUserInstruction = ""
+        retryCountdownTask?.cancel()
+        retryCountdownTask = nil
+    }
+
     deinit {
         retryCountdownTask?.cancel()
     }

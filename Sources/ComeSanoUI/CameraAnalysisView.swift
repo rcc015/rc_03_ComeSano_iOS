@@ -13,6 +13,7 @@ public struct CameraAnalysisView: View {
     @State private var isShowingCamera = false
     @State private var userInstruction = ""
     @State private var showSaveConfirmation = false
+    @FocusState private var isInstructionFocused: Bool
 
     public init(viewModel: FoodPhotoAnalyzerViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -48,6 +49,7 @@ public struct CameraAnalysisView: View {
 
                 TextField("Ej: prioriza comidas altas en proteína", text: $userInstruction, axis: .vertical)
                     .lineLimit(2...4)
+                    .focused($isInstructionFocused)
                     .padding()
                     .background(Color(uiColor: .secondarySystemGroupedBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -190,15 +192,30 @@ public struct CameraAnalysisView: View {
             .navigationTitle("Escáner Inteligente")
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(uiColor: .systemGroupedBackground))
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Listo") {
+                        dismissKeyboard()
+                    }
+                }
+            }
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    dismissKeyboard()
+                }
+            )
             .sheet(isPresented: $isShowingCamera) {
-                CameraImagePicker(image: $selectedImage)
+                CameraImagePicker(image: $selectedImage) { image in
+                    applyNewImage(image)
+                }
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 guard let newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
-                        selectedImage = image
+                        applyNewImage(image)
                     }
                 }
             }
@@ -215,14 +232,29 @@ public struct CameraAnalysisView: View {
 
     private func analyzeCurrentImage() {
         guard let image = selectedImage, let imageData = image.jpegData(compressionQuality: 0.85) else { return }
+        dismissKeyboard()
         Task {
             await viewModel.analyze(imageData: imageData, userInstruction: userInstruction)
         }
+    }
+
+    private func applyNewImage(_ image: UIImage) {
+        dismissKeyboard()
+        selectedImage = image
+        userInstruction = ""
+        showSaveConfirmation = false
+        viewModel.resetAnalysisState()
+    }
+
+    private func dismissKeyboard() {
+        isInstructionFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
 private struct CameraImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    let onImagePicked: (UIImage) -> Void
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -249,6 +281,7 @@ private struct CameraImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
                 parent.image = uiImage
+                parent.onImagePicked(uiImage)
             }
             parent.dismiss()
         }
