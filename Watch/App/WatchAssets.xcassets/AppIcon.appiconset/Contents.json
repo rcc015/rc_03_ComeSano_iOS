@@ -31,6 +31,7 @@
       "size" : "29x29"
     },
     {
+      "filename" : "watch_33x33@2x.png",
       "idiom" : "watch",
       "role" : "notificationCenter",
       "scale" : "2x",
@@ -102,6 +103,7 @@
       "subtype" : "42mm"
     },
     {
+      "filename" : "watch_108x108@2x.png",
       "idiom" : "watch",
       "role" : "quickLook",
       "scale" : "2x",
@@ -109,6 +111,7 @@
       "subtype" : "44mm"
     },
     {
+      "filename" : "watch_117x117@2x.png",
       "idiom" : "watch",
       "role" : "quickLook",
       "scale" : "2x",
@@ -116,6 +119,7 @@
       "subtype" : "45mm"
     },
     {
+      "filename" : "watch_129x129@2x.png",
       "idiom" : "watch",
       "role" : "quickLook",
       "scale" : "2x",
