@@ -2,6 +2,13 @@ import SwiftUI
 import ComeSanoCore
 import ComeSanoPersistence
 
+enum FoodLogQuickAddResult: Sendable {
+    case added
+    case alreadyExists
+    case maxReached
+    case error(String)
+}
+
 @MainActor
 final class FoodLogViewModel: ObservableObject {
     @Published private(set) var records: [FoodItem] = []
@@ -59,10 +66,19 @@ struct FoodLogView: View {
     @StateObject private var viewModel: FoodLogViewModel
     @State private var selectedDate: Date = .now
     @State private var weekStart: Date
+    @State private var actionMessage: String?
     private let calendar = Calendar.current
+    private let onRepeatTodayTap: (FoodItem) async throws -> Void
+    private let onAddToQuickAddTap: (FoodItem) async -> FoodLogQuickAddResult
 
-    init(viewModel: FoodLogViewModel) {
+    init(
+        viewModel: FoodLogViewModel,
+        onRepeatTodayTap: @escaping (FoodItem) async throws -> Void = { _ in },
+        onAddToQuickAddTap: @escaping (FoodItem) async -> FoodLogQuickAddResult = { _ in .error("Acción no disponible.") }
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onRepeatTodayTap = onRepeatTodayTap
+        self.onAddToQuickAddTap = onAddToQuickAddTap
         let today = Calendar.current.startOfDay(for: .now)
         let weekday = Calendar.current.component(.weekday, from: today)
         let mondayOffset = (weekday + 5) % 7
@@ -122,9 +138,31 @@ struct FoodLogView: View {
 
                                 Spacer()
 
-                                Text("\(Int(record.nutrition.calories.rounded())) kcal")
-                                    .font(.system(.headline, design: .rounded))
-                                    .fontWeight(.bold)
+                                VStack(alignment: .trailing, spacing: 6) {
+                                    Text("\(Int(record.nutrition.calories.rounded())) kcal")
+                                        .font(.system(.headline, design: .rounded))
+                                        .fontWeight(.bold)
+
+                                    HStack(spacing: 6) {
+                                        Button {
+                                            Task { await repeatRecordToday(record) }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise.circle")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .accessibilityLabel("Repetir en hoy")
+
+                                        Button {
+                                            Task { await addRecordToQuickAdd(record) }
+                                        } label: {
+                                            Image(systemName: "bolt.badge.plus")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .accessibilityLabel("Agregar a registro rápido")
+                                    }
+                                }
                             }
                             .padding(.vertical, 4)
                         }
@@ -158,6 +196,16 @@ struct FoodLogView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .alert("Diario", isPresented: Binding(
+                get: { actionMessage != nil },
+                set: { isPresented in
+                    if !isPresented { actionMessage = nil }
+                }
+            )) {
+                Button("OK", role: .cancel) { actionMessage = nil }
+            } message: {
+                Text(actionMessage ?? "")
+            }
         }
     }
 
@@ -178,6 +226,32 @@ struct FoodLogView: View {
     private func isDate(_ date: Date, inWeekStartingAt weekStart: Date) -> Bool {
         guard let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return false }
         return date >= weekStart && date < weekEnd
+    }
+
+    @MainActor
+    private func repeatRecordToday(_ record: FoodItem) async {
+        do {
+            try await onRepeatTodayTap(record)
+            actionMessage = "Se registró nuevamente en tu día actual."
+            await viewModel.refresh()
+        } catch {
+            actionMessage = "No se pudo repetir el alimento: \(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
+    private func addRecordToQuickAdd(_ record: FoodItem) async {
+        let result = await onAddToQuickAddTap(record)
+        switch result {
+        case .added:
+            actionMessage = "Se agregó a Registro Rápido."
+        case .alreadyExists:
+            actionMessage = "Ese alimento ya está en Registro Rápido."
+        case .maxReached:
+            actionMessage = "Registro Rápido admite máximo 8 alimentos."
+        case .error(let message):
+            actionMessage = message
+        }
     }
 }
 

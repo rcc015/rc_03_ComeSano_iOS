@@ -90,6 +90,8 @@ private struct RootView: View {
     @State private var isShowingFridgeScannerForGrocery = false
     @State private var healthBodyMetrics: HealthBodyMetrics?
     @State private var hasSyncedHydrationLogs = false
+    @State private var quickAddFavorites: [QuickAddFavoriteRecord] = []
+    @State private var hasLoadedQuickAddFavorites = false
 
     init() {
         #if os(iOS)
@@ -146,6 +148,13 @@ private struct RootView: View {
                     viewModel: dashboardViewModel,
                     onQuickAdd: handleQuickAdd,
                     onQuickAddCustomMeal: handleQuickAddCustomMeal,
+                    quickAddFavorites: quickAddFavorites.map(\.asDashboardFavorite),
+                    onQuickAddFavorite: { favorite in
+                        Task { await registerFavoriteQuickAdd(favorite) }
+                    },
+                    onRemoveQuickAddFavorite: { favorite in
+                        removeQuickAddFavorite(id: favorite.id)
+                    },
                     aiSuggestionProvider: { snapshot, goal in
                         await requestAISmartSuggestion(for: snapshot, goal: goal)
                     },
@@ -158,7 +167,15 @@ private struct RootView: View {
                         Label("Progreso", systemImage: "chart.line.uptrend.xyaxis")
                     }
 
-                FoodLogView(viewModel: foodLogViewModel)
+                FoodLogView(
+                    viewModel: foodLogViewModel,
+                    onRepeatTodayTap: { item in
+                        try await repeatFoodLogItemToday(item)
+                    },
+                    onAddToQuickAddTap: { item in
+                        await addFoodItemToQuickAddFavorites(item)
+                    }
+                )
                     .tag(AppTab.foodLog)
                     .tabItem {
                         Label("Diario", systemImage: "list.bullet.rectangle")
@@ -265,6 +282,7 @@ private struct RootView: View {
         }
         .task {
             loadAppMode()
+            loadQuickAddFavoritesIfNeeded()
             await ensureHealthDataLoaded()
             await syncHydrationLogsToDiaryIfNeeded(force: true)
             if !profileStore.hasCompletedOnboarding {
@@ -743,6 +761,12 @@ private struct RootView: View {
         }
     }
 
+    private func loadQuickAddFavoritesIfNeeded() {
+        guard !hasLoadedQuickAddFavorites else { return }
+        hasLoadedQuickAddFavorites = true
+        quickAddFavorites = QuickAddFavoriteStore.load()
+    }
+
     @MainActor
     private func registerQuickAdd(_ kind: DashboardView.QuickAddKind) async {
         let preset = QuickAddPreset.from(kind)
@@ -792,6 +816,89 @@ private struct RootView: View {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
             #endif
         }
+    }
+
+    @MainActor
+    private func registerFavoriteQuickAdd(_ favorite: DashboardView.QuickAddFavorite) async {
+        let preset = QuickAddPreset(
+            name: favorite.name,
+            servingDescription: favorite.servingDescription,
+            calories: max(0, favorite.calories),
+            proteinGrams: max(0, favorite.proteinGrams),
+            carbsGrams: max(0, favorite.carbsGrams),
+            fatGrams: max(0, favorite.fatGrams)
+        )
+
+        do {
+            try await saveFoodRecord(for: preset)
+            if preset.calories > 0 {
+                try await healthStore.saveDietaryEnergy(kilocalories: preset.calories, at: .now)
+            }
+            await dashboardViewModel.refresh()
+            await foodLogViewModel.refresh()
+            #if os(iOS)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            #endif
+        } catch {
+            #if os(iOS)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+        }
+    }
+
+    @MainActor
+    private func repeatFoodLogItemToday(_ item: FoodItem) async throws {
+        let repeated = FoodItem(
+            name: item.name,
+            servingDescription: item.servingDescription,
+            nutrition: item.nutrition,
+            source: "repeat",
+            loggedAt: .now
+        )
+        let existingItems = try await stores.fetchFoodItems()
+        try await stores.save(foodItems: existingItems + [repeated])
+        if repeated.nutrition.calories > 0 {
+            try await healthStore.saveDietaryEnergy(kilocalories: repeated.nutrition.calories, at: .now)
+        }
+        await dashboardViewModel.refresh()
+        await foodLogViewModel.refresh()
+    }
+
+    @MainActor
+    private func addFoodItemToQuickAddFavorites(_ item: FoodItem) async -> FoodLogQuickAddResult {
+        if quickAddFavorites.count >= QuickAddFavoriteStore.maxFavorites {
+            return .maxReached
+        }
+        let normalizedName = normalizeFavoriteName(item.name)
+        if quickAddFavorites.contains(where: { normalizeFavoriteName($0.name) == normalizedName }) {
+            return .alreadyExists
+        }
+
+        let favorite = QuickAddFavoriteRecord(
+            id: UUID().uuidString,
+            name: item.name,
+            servingDescription: item.servingDescription,
+            calories: item.nutrition.calories,
+            proteinGrams: item.nutrition.proteinGrams,
+            carbsGrams: item.nutrition.carbsGrams,
+            fatGrams: item.nutrition.fatGrams
+        )
+        var next = quickAddFavorites
+        next.append(favorite)
+        quickAddFavorites = next
+        QuickAddFavoriteStore.save(next)
+        return .added
+    }
+
+    private func removeQuickAddFavorite(id: String) {
+        quickAddFavorites.removeAll { $0.id == id }
+        QuickAddFavoriteStore.save(quickAddFavorites)
+    }
+
+    private func normalizeFavoriteName(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
     }
 
     private func makeProfileInput() -> NutritionProfileInput {
@@ -1073,6 +1180,47 @@ private struct QuickAddPreset {
                 fatGrams: 0.3
             )
         }
+    }
+}
+
+private struct QuickAddFavoriteRecord: Codable, Identifiable {
+    let id: String
+    let name: String
+    let servingDescription: String
+    let calories: Double
+    let proteinGrams: Double
+    let carbsGrams: Double
+    let fatGrams: Double
+
+    var asDashboardFavorite: DashboardView.QuickAddFavorite {
+        DashboardView.QuickAddFavorite(
+            id: id,
+            name: name,
+            servingDescription: servingDescription,
+            calories: calories,
+            proteinGrams: proteinGrams,
+            carbsGrams: carbsGrams,
+            fatGrams: fatGrams
+        )
+    }
+}
+
+private enum QuickAddFavoriteStore {
+    static let key = "quick.add.favorites.v1"
+    static let maxFavorites = 8
+
+    static func load(defaults: UserDefaults = .standard) -> [QuickAddFavoriteRecord] {
+        guard let data = defaults.data(forKey: key) else { return [] }
+        guard let decoded = try? JSONDecoder().decode([QuickAddFavoriteRecord].self, from: data) else {
+            return []
+        }
+        return Array(decoded.prefix(maxFavorites))
+    }
+
+    static func save(_ favorites: [QuickAddFavoriteRecord], defaults: UserDefaults = .standard) {
+        let clipped = Array(favorites.prefix(maxFavorites))
+        guard let data = try? JSONEncoder().encode(clipped) else { return }
+        defaults.set(data, forKey: key)
     }
 }
 

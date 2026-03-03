@@ -9,6 +9,33 @@ import AppKit
 public struct DashboardView: View {
     public typealias AISuggestionProvider = @Sendable (_ snapshot: DailyCalorieSnapshot, _ goal: PrimaryGoal) async -> String?
     public typealias MacroTargetsProvider = (_ date: Date) -> (protein: Double, carbs: Double, fat: Double)?
+    public struct QuickAddFavorite: Identifiable, Hashable {
+        public let id: String
+        public let name: String
+        public let servingDescription: String
+        public let calories: Double
+        public let proteinGrams: Double
+        public let carbsGrams: Double
+        public let fatGrams: Double
+
+        public init(
+            id: String,
+            name: String,
+            servingDescription: String,
+            calories: Double,
+            proteinGrams: Double,
+            carbsGrams: Double,
+            fatGrams: Double
+        ) {
+            self.id = id
+            self.name = name
+            self.servingDescription = servingDescription
+            self.calories = calories
+            self.proteinGrams = proteinGrams
+            self.carbsGrams = carbsGrams
+            self.fatGrams = fatGrams
+        }
+    }
 
     public enum QuickAddKind: String, CaseIterable, Identifiable {
         case coffee
@@ -26,6 +53,9 @@ public struct DashboardView: View {
     @State private var isLoadingAISuggestion = false
     private let onQuickAdd: (QuickAddKind) -> Void
     private let onQuickAddCustomMeal: (Double) -> Void
+    private let quickAddFavorites: [QuickAddFavorite]
+    private let onQuickAddFavorite: (QuickAddFavorite) -> Void
+    private let onRemoveQuickAddFavorite: (QuickAddFavorite) -> Void
     private let aiSuggestionProvider: AISuggestionProvider?
     private let macroTargetsProvider: MacroTargetsProvider?
 
@@ -33,12 +63,18 @@ public struct DashboardView: View {
         viewModel: DashboardViewModel,
         onQuickAdd: @escaping (QuickAddKind) -> Void = { _ in },
         onQuickAddCustomMeal: @escaping (Double) -> Void = { _ in },
+        quickAddFavorites: [QuickAddFavorite] = [],
+        onQuickAddFavorite: @escaping (QuickAddFavorite) -> Void = { _ in },
+        onRemoveQuickAddFavorite: @escaping (QuickAddFavorite) -> Void = { _ in },
         aiSuggestionProvider: AISuggestionProvider? = nil,
         macroTargetsProvider: MacroTargetsProvider? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.onQuickAdd = onQuickAdd
         self.onQuickAddCustomMeal = onQuickAddCustomMeal
+        self.quickAddFavorites = quickAddFavorites
+        self.onQuickAddFavorite = onQuickAddFavorite
+        self.onRemoveQuickAddFavorite = onRemoveQuickAddFavorite
         self.aiSuggestionProvider = aiSuggestionProvider
         self.macroTargetsProvider = macroTargetsProvider
     }
@@ -95,7 +131,10 @@ public struct DashboardView: View {
                             onCustomMealTap: {
                                 customMealCaloriesText = "400"
                                 isShowingCustomMealPrompt = true
-                            }
+                            },
+                            favorites: quickAddFavorites,
+                            onQuickAddFavorite: onQuickAddFavorite,
+                            onRemoveFavorite: onRemoveQuickAddFavorite
                         )
 
                         HStack(spacing: 15) {
@@ -309,6 +348,10 @@ private struct SmartSuggestionCard: View {
 private struct QuickAddSection: View {
     let onQuickAdd: (DashboardView.QuickAddKind) -> Void
     let onCustomMealTap: () -> Void
+    let favorites: [DashboardView.QuickAddFavorite]
+    let onQuickAddFavorite: (DashboardView.QuickAddFavorite) -> Void
+    let onRemoveFavorite: (DashboardView.QuickAddFavorite) -> Void
+    @State private var pendingDeletion: DashboardView.QuickAddFavorite?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -356,6 +399,66 @@ private struct QuickAddSection: View {
                 }
                 .padding(.horizontal)
             }
+
+            if !favorites.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Frecuentes")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 15) {
+                            ForEach(favorites) { favorite in
+                                ZStack(alignment: .topTrailing) {
+                                    QuickAddButton(
+                                        icon: "star.fill",
+                                        title: favorite.name,
+                                        subtitle: "\(Int(favorite.calories.rounded())) kcal • \(favorite.servingDescription)",
+                                        color: .mint
+                                    ) {
+                                        onQuickAddFavorite(favorite)
+                                    }
+
+                                    Button {
+                                        pendingDeletion = favorite
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(.white, Color.red)
+                                            .padding(6)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            } else {
+                Text("Puedes agregar hasta 8 alimentos frecuentes desde tu Diario.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+        }
+        .alert("¿Borrar de registro rápido?", isPresented: Binding(
+            get: { pendingDeletion != nil },
+            set: { isPresented in
+                if !isPresented { pendingDeletion = nil }
+            }
+        )) {
+            Button("Cancelar", role: .cancel) {
+                pendingDeletion = nil
+            }
+            Button("Borrar", role: .destructive) {
+                if let favorite = pendingDeletion {
+                    onRemoveFavorite(favorite)
+                }
+                pendingDeletion = nil
+            }
+        } message: {
+            Text("Se quitará de tus alimentos frecuentes.")
         }
     }
 }

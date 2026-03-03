@@ -361,7 +361,7 @@ struct PlanDailyView: View {
     private func mealCard(_ title: String, icon: String, color: Color, meal: NutritionMeal, canLogToday: Bool = false) -> some View {
         let mealKey = "\(title)|\(meal.titulo)|\(meal.calorias)"
         let isLogged = loggedMealsToday.contains(mealKey)
-        HStack(alignment: .top, spacing: 12) {
+        return HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundStyle(color)
                 .frame(width: 24)
