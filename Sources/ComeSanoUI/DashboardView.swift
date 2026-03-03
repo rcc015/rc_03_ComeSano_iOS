@@ -129,8 +129,12 @@ public struct DashboardView: View {
                 await refreshAISuggestion()
             }
             .alert("Comida estándar", isPresented: $isShowingCustomMealPrompt) {
+                #if os(iOS)
                 TextField("Calorías", text: $customMealCaloriesText)
                     .keyboardType(.numberPad)
+                #else
+                TextField("Calorías", text: $customMealCaloriesText)
+                #endif
 
                 Button("Cancelar", role: .cancel) {}
                 Button("Agregar") {

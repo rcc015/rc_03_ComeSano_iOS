@@ -181,6 +181,9 @@ private struct RootView: View {
                         },
                         onAnalyzeFridgeTap: { imagesData in
                             try await analyzeFridgeIngredients(from: imagesData)
+                        },
+                        onLogMealTap: { mealLabel, meal in
+                            try await logPlannedMealToDiary(mealLabel: mealLabel, meal: meal)
                         }
                     )
                     .tag(AppTab.plan)
@@ -991,6 +994,33 @@ private struct RootView: View {
 
         let existingItems = try await stores.fetchFoodItems()
         try await stores.save(foodItems: existingItems + [item])
+    }
+
+    @MainActor
+    private func logPlannedMealToDiary(mealLabel: String, meal: NutritionMeal) async throws {
+        let trimmedDescription = meal.descripcion.trimmingCharacters(in: .whitespacesAndNewlines)
+        let serving = trimmedDescription.isEmpty ? "Comida planeada: \(mealLabel)" : trimmedDescription
+        let normalizedLabel = mealLabel
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "-")
+        let item = FoodItem(
+            name: meal.titulo,
+            servingDescription: serving,
+            nutrition: NutritionPerServing(
+                calories: Double(meal.calorias),
+                proteinGrams: 0,
+                carbsGrams: 0,
+                fatGrams: 0
+            ),
+            source: "plan-\(normalizedLabel)",
+            loggedAt: .now
+        )
+
+        let existingItems = try await stores.fetchFoodItems()
+        try await stores.save(foodItems: existingItems + [item])
+        await dashboardViewModel.refresh()
+        await foodLogViewModel.refresh()
     }
 }
 

@@ -6,6 +6,7 @@ struct PlanDailyView: View {
     let onGenerateWeeklyPlanTap: (_ slot: WeeklyPlanSlot, _ ajustes: String, _ ingredientesRefri: String) async throws -> WeeklyNutritionPlan
     let onGenerateWeeklyGroceryTap: (_ plan: WeeklyNutritionPlan, _ ingredientesRefri: String, _ replaceExisting: Bool) async throws -> Int
     let onAnalyzeFridgeTap: (_ imagesData: [Data]) async throws -> [String]
+    let onLogMealTap: (_ mealLabel: String, _ meal: NutritionMeal) async throws -> Void
 
     @State private var selectedWeekSlot: WeeklyPlanSlot = .current
     @State private var ajustesSemanales = ""
@@ -15,9 +16,12 @@ struct PlanDailyView: View {
     @State private var autoUpdateGroceryAfterPlan = true
     @State private var isGeneratingWeekly = false
     @State private var isGeneratingGrocery = false
+    @State private var isLoggingMeal = false
     @State private var actionError: String?
     @State private var actionMessage: String?
+    @State private var mealLogError: String?
     @State private var isShowingFridgeScanner = false
+    @State private var loggedMealsToday: Set<String> = []
 
     var body: some View {
         NavigationStack {
@@ -31,11 +35,11 @@ struct PlanDailyView: View {
                             currentDayCard(currentDay, slot: selectedWeekSlot)
                         } else {
                             // Fallback while user still has only daily plan.
-                            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: plan.desayuno)
-                            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: plan.colacion1)
-                            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: plan.comida)
-                            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: plan.colacion2)
-                            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: plan.cena)
+                            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: plan.desayuno, canLogToday: true)
+                            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: plan.colacion1, canLogToday: true)
+                            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: plan.comida, canLogToday: true)
+                            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: plan.colacion2, canLogToday: true)
+                            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: plan.cena, canLogToday: true)
                         }
 
                         weeklyActionsCard
@@ -78,6 +82,16 @@ struct PlanDailyView: View {
                 #else
                 Text("Escáner de refri solo disponible en iOS")
                 #endif
+            }
+            .alert("No se pudo agregar al diario", isPresented: Binding(
+                get: { mealLogError != nil },
+                set: { isPresented in
+                    if !isPresented { mealLogError = nil }
+                }
+            )) {
+                Button("OK", role: .cancel) { mealLogError = nil }
+            } message: {
+                Text(mealLogError ?? "")
             }
         }
     }
@@ -317,11 +331,11 @@ struct PlanDailyView: View {
             Text(slot == .current ? "Hoy • \(day.dia)" : "\(slot.title) • \(day.dia)")
                 .font(.headline)
 
-            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: day.desayuno)
-            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: day.colacion1)
-            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: day.comida)
-            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: day.colacion2)
-            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: day.cena)
+            mealCard("Desayuno", icon: "sun.max.fill", color: .orange, meal: day.desayuno, canLogToday: true)
+            mealCard("Colación 1", icon: "leaf.fill", color: .mint, meal: day.colacion1, canLogToday: true)
+            mealCard("Comida", icon: "sun.haze.fill", color: .yellow, meal: day.comida, canLogToday: true)
+            mealCard("Colación 2", icon: "leaf.circle.fill", color: .teal, meal: day.colacion2, canLogToday: true)
+            mealCard("Cena", icon: "moon.stars.fill", color: .indigo, meal: day.cena, canLogToday: true)
 
             Text("Total estimado de hoy: \(day.caloriasTotales) kcal")
                 .font(.subheadline.weight(.semibold))
@@ -344,7 +358,9 @@ struct PlanDailyView: View {
         }
     }
 
-    private func mealCard(_ title: String, icon: String, color: Color, meal: NutritionMeal) -> some View {
+    private func mealCard(_ title: String, icon: String, color: Color, meal: NutritionMeal, canLogToday: Bool = false) -> some View {
+        let mealKey = "\(title)|\(meal.titulo)|\(meal.calorias)"
+        let isLogged = loggedMealsToday.contains(mealKey)
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundStyle(color)
@@ -365,6 +381,21 @@ struct PlanDailyView: View {
                 Text(meal.descripcion)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+
+                if canLogToday {
+                    Button {
+                        Task { await logMealToDiary(mealLabel: title, meal: meal, mealKey: mealKey) }
+                    } label: {
+                        Label(
+                            isLogged ? "Registrada en diario" : "Agregar a diario de consumo",
+                            systemImage: isLogged ? "checkmark.circle.fill" : "plus.circle.fill"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(isLogged ? .green : .accentColor)
+                    .disabled(isLoggingMeal || isLogged)
+                }
             }
         }
         .padding()
@@ -392,6 +423,21 @@ struct PlanDailyView: View {
             .lowercased()
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    @MainActor
+    private func logMealToDiary(mealLabel: String, meal: NutritionMeal, mealKey: String) async {
+        guard !isLoggingMeal else { return }
+        mealLogError = nil
+        isLoggingMeal = true
+        defer { isLoggingMeal = false }
+
+        do {
+            try await onLogMealTap(mealLabel, meal)
+            loggedMealsToday.insert(mealKey)
+        } catch {
+            mealLogError = error.localizedDescription
+        }
     }
 
     @MainActor
@@ -467,6 +513,7 @@ struct PlanDailyView: View {
             )
         },
         onGenerateWeeklyGroceryTap: { _, _, _ in 8 },
-        onAnalyzeFridgeTap: { _ in ["huevo", "pollo", "brócoli", "yogurt griego"] }
+        onAnalyzeFridgeTap: { _ in ["huevo", "pollo", "brócoli", "yogurt griego"] },
+        onLogMealTap: { _, _ in }
     )
 }
