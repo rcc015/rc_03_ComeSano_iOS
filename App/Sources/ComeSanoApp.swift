@@ -440,7 +440,10 @@ private struct RootView: View {
 
         switch primary {
         case .gemini:
-            if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
+            if let key = normalizedKey(
+                storeKey: keychainStore.key(for: .gemini) ?? keychainStore.sharedGeminiKey() ?? keychainStore.bundledGeminiKey(),
+                env: "GEMINI_API_KEY"
+            ),
                let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
                 return text
             }
@@ -453,7 +456,10 @@ private struct RootView: View {
                let text = try? await requestOpenAISuggestion(prompt: prompt, apiKey: key) {
                 return text
             }
-            if let key = normalizedKey(storeKey: keychainStore.key(for: .gemini), env: "GEMINI_API_KEY"),
+            if let key = normalizedKey(
+                storeKey: keychainStore.key(for: .gemini) ?? keychainStore.sharedGeminiKey() ?? keychainStore.bundledGeminiKey(),
+                env: "GEMINI_API_KEY"
+            ),
                let text = try? await requestGeminiSuggestion(prompt: prompt, apiKey: key) {
                 return text
             }
@@ -685,7 +691,10 @@ private struct RootView: View {
 
     private static func makeAIClient(from store: AIKeychainStore) -> MultimodalNutritionInference {
         let openAIKey = store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
-        let geminiKey = store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+        let geminiKey = store.key(for: .gemini)
+            ?? store.sharedGeminiKey()
+            ?? store.bundledGeminiKey()
+            ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
 
         let openAIClient = openAIKey.flatMap { key -> MultimodalNutritionInference? in
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -708,7 +717,7 @@ private struct RootView: View {
         case .gemini:
             guard let geminiClient else {
                 return EmptyNutritionInference(
-                    message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY configurada en IA."
+                    message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY (ni compartida) configurada."
                 )
             }
             return geminiClient
@@ -717,7 +726,10 @@ private struct RootView: View {
 
     private static func makeRecipeAIClient(from store: AIKeychainStore) -> MultimodalRecipeInference {
         let openAIKey = store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
-        let geminiKey = store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+        let geminiKey = store.key(for: .gemini)
+            ?? store.sharedGeminiKey()
+            ?? store.bundledGeminiKey()
+            ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
 
         let openAIClient = openAIKey.flatMap { key -> MultimodalRecipeInference? in
             guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -736,7 +748,7 @@ private struct RootView: View {
             )
         case .gemini:
             return geminiClient ?? EmptyRecipeInference(
-                message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY configurada en IA."
+                message: "Proveedor principal Gemini seleccionado, pero no hay GEMINI_API_KEY (ni compartida) configurada."
             )
         }
     }
@@ -745,7 +757,10 @@ private struct RootView: View {
         NutritionPlanRemoteGenerator(
             primaryProvider: store.primaryProvider,
             openAIKey: store.key(for: .openAI) ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"],
-            geminiKey: store.key(for: .gemini) ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+            geminiKey: store.key(for: .gemini)
+                ?? store.sharedGeminiKey()
+                ?? store.bundledGeminiKey()
+                ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
         )
     }
 

@@ -211,6 +211,13 @@ public struct CameraAnalysisView: View {
                     .disabled(selectedImage == nil || viewModel.isLoading)
                     .padding(.horizontal)
 
+                    if let limitStatus = viewModel.limitStatusMessage {
+                        Text(limitStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                    }
+
                     Color.clear.frame(height: 8)
                 }
             }
@@ -247,6 +254,9 @@ public struct CameraAnalysisView: View {
                     }
                 }
                 Button("Cancelar", role: .cancel) {}
+            }
+            .task {
+                viewModel.refreshLimitStatus()
             }
         }
     }

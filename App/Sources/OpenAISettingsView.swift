@@ -14,6 +14,9 @@ struct AISettingsView: View {
 
     @State private var openAIKeyInput = ""
     @State private var geminiKeyInput = ""
+    @State private var sharedGeminiKeyInput = ""
+    @State private var cooldownSeconds = UserDefaults.standard.integer(forKey: "ai.shared.cooldown_seconds")
+    @State private var dailyLimit = UserDefaults.standard.integer(forKey: "ai.shared.daily_limit")
     @State private var statusMessage: String?
     @State private var reminderStatusMessage: String?
 
@@ -64,9 +67,53 @@ struct AISettingsView: View {
                     .disabled(!keychainStore.hasGeminiKey)
                 }
 
+                Section("Gemini compartida (TestFlight beta)") {
+                    SecureField("AIza... (key compartida)", text: $sharedGeminiKeyInput)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    Button("Guardar Gemini compartida") {
+                        do {
+                            try keychainStore.saveSharedGeminiKey(sharedGeminiKeyInput)
+                            onConfigurationChanged()
+                            statusMessage = "Key compartida guardada."
+                        } catch {
+                            statusMessage = error.localizedDescription
+                        }
+                    }
+
+                    Button("Eliminar Gemini compartida", role: .destructive) {
+                        do {
+                            try keychainStore.deleteSharedGeminiKey()
+                            sharedGeminiKeyInput = ""
+                            onConfigurationChanged()
+                            statusMessage = "Key compartida eliminada."
+                        } catch {
+                            statusMessage = error.localizedDescription
+                        }
+                    }
+                    .disabled(!keychainStore.hasSharedGeminiKey)
+
+                    Stepper("Cooldown entre análisis: \(max(cooldownSeconds, 1))s", value: $cooldownSeconds, in: 1...120)
+                        .onChange(of: cooldownSeconds) { _, newValue in
+                            UserDefaults.standard.set(max(newValue, 1), forKey: "ai.shared.cooldown_seconds")
+                        }
+
+                    Stepper("Límite diario por dispositivo: \(max(dailyLimit, 1))", value: $dailyLimit, in: 1...200)
+                        .onChange(of: dailyLimit) { _, newValue in
+                            UserDefaults.standard.set(max(newValue, 1), forKey: "ai.shared.daily_limit")
+                        }
+
+                    Text("Modo temporal para beta cerrada. Migra a backend proxy cuando escale uso.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Estado") {
                     Text("OpenAI: \(keychainStore.hasOpenAIKey ? "configurada" : "sin key")")
                     Text("Gemini: \(keychainStore.hasGeminiKey ? "configurada" : "sin key")")
+                    Text("Gemini compartida: \(keychainStore.hasSharedGeminiKey ? "configurada" : "sin key")")
+                    Text("Gemini embebida (TestFlight): \(keychainStore.hasBundledGeminiKey ? "configurada" : "sin key")")
                     if let statusMessage {
                         Text(statusMessage)
                             .foregroundStyle(.secondary)
@@ -187,6 +234,17 @@ struct AISettingsView: View {
                 }
                 if geminiKeyInput.isEmpty, let existing = keychainStore.key(for: .gemini) {
                     geminiKeyInput = existing
+                }
+                if sharedGeminiKeyInput.isEmpty, let existing = keychainStore.sharedGeminiKey() {
+                    sharedGeminiKeyInput = existing
+                }
+                if cooldownSeconds <= 0 {
+                    cooldownSeconds = 20
+                    UserDefaults.standard.set(20, forKey: "ai.shared.cooldown_seconds")
+                }
+                if dailyLimit <= 0 {
+                    dailyLimit = 25
+                    UserDefaults.standard.set(25, forKey: "ai.shared.daily_limit")
                 }
                 Task {
                     await reminderManager.refreshAuthorizationStatus()

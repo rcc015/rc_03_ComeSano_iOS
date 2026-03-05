@@ -16,8 +16,6 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,15 +27,27 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>ComeSano usa la cámara para analizar tus comidas y productos de alacena/refrigerador.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>ComeSano lee tu gasto energético activo y en reposo para calcular tu progreso diario.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>ComeSano escribe tus calorías consumidas para mantener tu registro nutricional sincronizado.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ComeSano usa tu galería para analizar fotos de comidas y productos.</string>
+	<key>GEMINI_SHARED_API_KEY</key>
+	<string>$(GEMINI_SHARED_API_KEY)</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -46,13 +56,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSHealthShareUsageDescription</key>
-	<string>ComeSano lee tu gasto energético activo y en reposo para calcular tu progreso diario.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>ComeSano escribe tus calorías consumidas para mantener tu registro nutricional sincronizado.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>ComeSano usa la cámara para analizar tus comidas y productos de alacena/refrigerador.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ComeSano usa tu galería para analizar fotos de comidas y productos.</string>
 </dict>
 </plist>

@@ -105,6 +105,13 @@ public struct RecipeSuggestionView: View {
                     .disabled(fridgePhotos.isEmpty || viewModel.isLoading)
                     .padding(.horizontal)
 
+                    if let limitStatus = viewModel.limitStatusMessage {
+                        Text(limitStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                    }
+
                     if !viewModel.recipes.isEmpty {
                         Button {
                             Task { await viewModel.saveMissingIngredientsToShoppingList() }
@@ -168,6 +175,9 @@ public struct RecipeSuggestionView: View {
                     }
                     selectedPhotoItems = []
                 }
+            }
+            .task {
+                viewModel.refreshLimitStatus()
             }
         }
     }

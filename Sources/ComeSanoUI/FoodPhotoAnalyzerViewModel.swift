@@ -13,6 +13,7 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
     @Published public private(set) var shoppingSaveMessage: String?
     @Published public private(set) var shoppingSaveErrorMessage: String?
     @Published public private(set) var retryAfterSeconds: Int?
+    @Published public private(set) var limitStatusMessage: String?
 
     private var aiClient: MultimodalNutritionInference
     private let foodStore: FoodCatalogStore?
@@ -21,6 +22,7 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
     private var lastImageData: Data?
     private var lastUserInstruction = ""
     private var retryCountdownTask: Task<Void, Never>?
+    private let limitKeyPrefix = "ai.limit.photo"
 
     public init(
         aiClient: MultimodalNutritionInference,
@@ -32,6 +34,7 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
         self.foodStore = foodStore
         self.shoppingStore = shoppingStore
         self.dietaryWriter = dietaryWriter
+        refreshLimitStatus()
     }
 
     public func updateAIClient(_ client: MultimodalNutritionInference) {
@@ -39,6 +42,19 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
     }
 
     public func analyze(imageData: Data, userInstruction: String = "") async {
+        switch evaluateRateLimit() {
+        case .allowed:
+            break
+        case .cooldown(let seconds):
+            errorMessage = "Espera \(seconds)s antes de volver a analizar."
+            refreshLimitStatus()
+            return
+        case .dailyLimitReached(let max):
+            errorMessage = "Límite diario alcanzado (\(max) análisis)."
+            refreshLimitStatus()
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         saveMessage = nil
@@ -58,6 +74,7 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
         }
 
         isLoading = false
+        refreshLimitStatus()
     }
 
     public func saveCurrentFoodItems() async {
@@ -136,6 +153,13 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
         shoppingSaveErrorMessage = nil
         retryAfterSeconds = nil
         retryCountdownTask?.cancel()
+        refreshLimitStatus()
+    }
+
+    public func refreshLimitStatus() {
+        let status = currentLimitStatus()
+        let cooldownPart = status.cooldownRemaining > 0 ? " · espera \(status.cooldownRemaining)s" : ""
+        limitStatusMessage = "Te quedan \(status.remainingToday) análisis hoy\(cooldownPart)."
     }
 
     deinit {
@@ -195,5 +219,70 @@ public final class FoodPhotoAnalyzerViewModel: ObservableObject {
             merged.append(item)
         }
         return merged
+    }
+
+    private enum LimitDecision {
+        case allowed
+        case cooldown(Int)
+        case dailyLimitReached(Int)
+    }
+
+    private func evaluateRateLimit(now: Date = .now) -> LimitDecision {
+        let defaults = UserDefaults.standard
+        let cooldown = max(defaults.integer(forKey: "ai.shared.cooldown_seconds"), 1)
+        let dailyLimit = max(defaults.integer(forKey: "ai.shared.daily_limit"), 1)
+
+        if let last = defaults.object(forKey: "\(limitKeyPrefix).lastAttempt") as? Date {
+            let elapsed = Int(now.timeIntervalSince(last))
+            if elapsed < cooldown {
+                return .cooldown(max(1, cooldown - elapsed))
+            }
+        }
+
+        let dayKey = Self.dayStamp(from: now)
+        let storedDay = defaults.string(forKey: "\(limitKeyPrefix).day") ?? ""
+        var count = defaults.integer(forKey: "\(limitKeyPrefix).count")
+        if storedDay != dayKey {
+            count = 0
+        }
+
+        if count >= dailyLimit {
+            return .dailyLimitReached(dailyLimit)
+        }
+
+        defaults.set(now, forKey: "\(limitKeyPrefix).lastAttempt")
+        defaults.set(dayKey, forKey: "\(limitKeyPrefix).day")
+        defaults.set(count + 1, forKey: "\(limitKeyPrefix).count")
+        return .allowed
+    }
+
+    private func currentLimitStatus(now: Date = .now) -> (remainingToday: Int, cooldownRemaining: Int) {
+        let defaults = UserDefaults.standard
+        let cooldown = max(defaults.integer(forKey: "ai.shared.cooldown_seconds"), 1)
+        let dailyLimit = max(defaults.integer(forKey: "ai.shared.daily_limit"), 1)
+
+        let dayKey = Self.dayStamp(from: now)
+        let storedDay = defaults.string(forKey: "\(limitKeyPrefix).day") ?? ""
+        let count = storedDay == dayKey ? defaults.integer(forKey: "\(limitKeyPrefix).count") : 0
+        let remaining = max(0, dailyLimit - count)
+
+        var cooldownRemaining = 0
+        if let last = defaults.object(forKey: "\(limitKeyPrefix).lastAttempt") as? Date {
+            let elapsed = Int(now.timeIntervalSince(last))
+            if elapsed < cooldown {
+                cooldownRemaining = max(1, cooldown - elapsed)
+            }
+        }
+
+        return (remaining, cooldownRemaining)
+    }
+
+    private static func dayStamp(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
