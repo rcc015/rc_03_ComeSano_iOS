@@ -17,6 +17,7 @@ public struct DashboardView: View {
         public let proteinGrams: Double
         public let carbsGrams: Double
         public let fatGrams: Double
+        public let fiberGrams: Double
 
         public init(
             id: String,
@@ -25,7 +26,8 @@ public struct DashboardView: View {
             calories: Double,
             proteinGrams: Double,
             carbsGrams: Double,
-            fatGrams: Double
+            fatGrams: Double,
+            fiberGrams: Double
         ) {
             self.id = id
             self.name = name
@@ -34,6 +36,7 @@ public struct DashboardView: View {
             self.proteinGrams = proteinGrams
             self.carbsGrams = carbsGrams
             self.fatGrams = fatGrams
+            self.fiberGrams = fiberGrams
         }
     }
 
@@ -117,6 +120,10 @@ public struct DashboardView: View {
                             grasas: (
                                 consumido: selectedSnapshot.consumedFatGrams,
                                 meta: macroTargets(for: selectedSnapshot).fat
+                            ),
+                            fibra: (
+                                consumido: selectedSnapshot.consumedFiberGrams,
+                                meta: recommendedFiberGrams(for: selectedSnapshot.targetKcal)
                             )
                         )
 
@@ -285,6 +292,10 @@ public struct DashboardView: View {
             carbs: (calories * 0.40) / 4.0,
             fat: (calories * 0.30) / 9.0
         )
+    }
+
+    private func recommendedFiberGrams(for calories: Double) -> Double {
+        max(25, (calories / 1000.0) * 14.0)
     }
 
     @MainActor
@@ -695,6 +706,7 @@ struct MacrosCardView: View {
     var proteina: (consumido: Double, meta: Double)
     var carbohidratos: (consumido: Double, meta: Double)
     var grasas: (consumido: Double, meta: Double)
+    var fibra: (consumido: Double, meta: Double)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -727,6 +739,12 @@ struct MacrosCardView: View {
                     meta: grasas.meta,
                     color: .purple
                 )
+                MacroDetailRow(
+                    titulo: "Fibra",
+                    consumido: fibra.consumido,
+                    meta: fibra.meta,
+                    color: .green
+                )
             }
         }
         .padding(20)
@@ -735,6 +753,7 @@ struct MacrosCardView: View {
         .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
     }
 }
+
 
 private struct MacroDetailRow: View {
     let titulo: String

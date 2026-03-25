@@ -5,16 +5,18 @@ public struct NutritionPerServing: Codable, Sendable {
     public var proteinGrams: Double
     public var carbsGrams: Double
     public var fatGrams: Double
+    public var fiberGrams: Double
 
-    public init(calories: Double, proteinGrams: Double, carbsGrams: Double, fatGrams: Double) {
+    public init(calories: Double, proteinGrams: Double, carbsGrams: Double, fatGrams: Double, fiberGrams: Double = 0) {
         self.calories = calories
         self.proteinGrams = proteinGrams
         self.carbsGrams = carbsGrams
         self.fatGrams = fatGrams
+        self.fiberGrams = fiberGrams
     }
 
     private enum CodingKeys: String, CodingKey {
-        case calories, proteinGrams, carbsGrams, fatGrams
+        case calories, proteinGrams, carbsGrams, fatGrams, fiberGrams
     }
 
     public init(from decoder: Decoder) throws {
@@ -23,6 +25,7 @@ public struct NutritionPerServing: Codable, Sendable {
         proteinGrams = try container.decodeIfPresent(Double.self, forKey: .proteinGrams) ?? 0
         carbsGrams = try container.decodeIfPresent(Double.self, forKey: .carbsGrams) ?? 0
         fatGrams = try container.decodeIfPresent(Double.self, forKey: .fatGrams) ?? 0
+        fiberGrams = try container.decodeIfPresent(Double.self, forKey: .fiberGrams) ?? 0
     }
 }
 

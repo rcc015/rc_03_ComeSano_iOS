@@ -23,6 +23,7 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, D
                 record.proteinGrams = item.nutrition.proteinGrams
                 record.carbsGrams = item.nutrition.carbsGrams
                 record.fatGrams = item.nutrition.fatGrams
+                record.fiberGrams = item.nutrition.fiberGrams
                 record.source = item.source
                 record.loggedAt = item.loggedAt ?? .now
             }
@@ -45,7 +46,8 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, D
                         calories: $0.calories,
                         proteinGrams: $0.proteinGrams,
                         carbsGrams: $0.carbsGrams,
-                        fatGrams: $0.fatGrams
+                        fatGrams: $0.fatGrams,
+                        fiberGrams: $0.fiberGrams
                     ),
                     source: $0.source,
                     loggedAt: $0.loggedAt
@@ -80,12 +82,12 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, D
         }
     }
 
-    public func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double) {
+    public func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double, fiberGrams: Double) {
         let context = controller.container.newBackgroundContext()
         return try await context.perform {
             let calendar = Calendar.current
             let start = calendar.startOfDay(for: date)
-            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return (0, 0, 0) }
+            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return (0, 0, 0, 0) }
 
             let request = NSFetchRequest<NSDictionary>(entityName: "FoodRecord")
             request.resultType = .dictionaryResultType
@@ -115,14 +117,23 @@ public actor CoreDataStores: FoodCatalogStore, PantryStore, ShoppingListStore, D
             )
             fatsExpression.expressionResultType = .doubleAttributeType
 
-            request.propertiesToFetch = [proteinExpression, carbsExpression, fatsExpression]
+            let fiberExpression = NSExpressionDescription()
+            fiberExpression.name = "sumFiber"
+            fiberExpression.expression = NSExpression(
+                forFunction: "sum:",
+                arguments: [NSExpression(forKeyPath: "fiberGrams")]
+            )
+            fiberExpression.expressionResultType = .doubleAttributeType
+
+            request.propertiesToFetch = [proteinExpression, carbsExpression, fatsExpression, fiberExpression]
 
             let result = try context.fetch(request)
             let dict = result.first
             let protein = (dict?["sumProtein"] as? NSNumber)?.doubleValue ?? 0
             let carbs = (dict?["sumCarbs"] as? NSNumber)?.doubleValue ?? 0
             let fats = (dict?["sumFats"] as? NSNumber)?.doubleValue ?? 0
-            return (protein, carbs, fats)
+            let fiber = (dict?["sumFiber"] as? NSNumber)?.doubleValue ?? 0
+            return (protein, carbs, fats, fiber)
         }
     }
 

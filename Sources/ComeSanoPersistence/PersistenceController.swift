@@ -15,6 +15,9 @@ public final class PersistenceController: @unchecked Sendable {
 
         if inMemory {
             description.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
         }
 
         container.loadPersistentStores { _, error in
@@ -37,10 +40,11 @@ public final class PersistenceController: @unchecked Sendable {
             makeAttribute(name: "id", type: .UUIDAttributeType),
             makeAttribute(name: "name", type: .stringAttributeType),
             makeAttribute(name: "servingDescription", type: .stringAttributeType),
-            makeAttribute(name: "calories", type: .doubleAttributeType),
-            makeAttribute(name: "proteinGrams", type: .doubleAttributeType),
-            makeAttribute(name: "carbsGrams", type: .doubleAttributeType),
-            makeAttribute(name: "fatGrams", type: .doubleAttributeType),
+            makeAttribute(name: "calories", type: .doubleAttributeType, defaultValue: 0),
+            makeAttribute(name: "proteinGrams", type: .doubleAttributeType, defaultValue: 0),
+            makeAttribute(name: "carbsGrams", type: .doubleAttributeType, defaultValue: 0),
+            makeAttribute(name: "fatGrams", type: .doubleAttributeType, defaultValue: 0),
+            makeAttribute(name: "fiberGrams", type: .doubleAttributeType, defaultValue: 0),
             makeAttribute(name: "source", type: .stringAttributeType),
             makeAttribute(name: "loggedAt", type: .dateAttributeType, optional: true)
         ]
@@ -51,7 +55,7 @@ public final class PersistenceController: @unchecked Sendable {
         pantryEntity.properties = [
             makeAttribute(name: "id", type: .UUIDAttributeType),
             makeAttribute(name: "name", type: .stringAttributeType),
-            makeAttribute(name: "quantity", type: .doubleAttributeType),
+            makeAttribute(name: "quantity", type: .doubleAttributeType, defaultValue: 0),
             makeAttribute(name: "unit", type: .stringAttributeType),
             makeAttribute(name: "expiryDate", type: .dateAttributeType, optional: true)
         ]
@@ -63,20 +67,26 @@ public final class PersistenceController: @unchecked Sendable {
             makeAttribute(name: "id", type: .UUIDAttributeType),
             makeAttribute(name: "name", type: .stringAttributeType),
             makeAttribute(name: "category", type: .stringAttributeType, optional: true),
-            makeAttribute(name: "quantity", type: .doubleAttributeType),
+            makeAttribute(name: "quantity", type: .doubleAttributeType, defaultValue: 0),
             makeAttribute(name: "unit", type: .stringAttributeType),
-            makeAttribute(name: "isPurchased", type: .booleanAttributeType)
+            makeAttribute(name: "isPurchased", type: .booleanAttributeType, defaultValue: false)
         ]
 
         model.entities = [foodEntity, pantryEntity, shoppingEntity]
         return model
     }
 
-    private static func makeAttribute(name: String, type: NSAttributeType, optional: Bool = false) -> NSAttributeDescription {
+    private static func makeAttribute(
+        name: String,
+        type: NSAttributeType,
+        optional: Bool = false,
+        defaultValue: Any? = nil
+    ) -> NSAttributeDescription {
         let attribute = NSAttributeDescription()
         attribute.name = name
         attribute.attributeType = type
         attribute.isOptional = optional
+        attribute.defaultValue = defaultValue
         return attribute
     }
 }
@@ -90,6 +100,7 @@ final class FoodRecord: NSManagedObject {
     @NSManaged var proteinGrams: Double
     @NSManaged var carbsGrams: Double
     @NSManaged var fatGrams: Double
+    @NSManaged var fiberGrams: Double
     @NSManaged var source: String
     @NSManaged var loggedAt: Date?
 }

@@ -75,7 +75,8 @@ public final class DashboardViewModel: ObservableObject {
                     targetKcal: profile.dailyCalorieTarget,
                     consumedProteinGrams: consumedMacros.proteinGrams,
                     consumedCarbsGrams: consumedMacros.carbsGrams,
-                    consumedFatGrams: consumedMacros.fatGrams
+                    consumedFatGrams: consumedMacros.fatGrams,
+                    consumedFiberGrams: consumedMacros.fiberGrams
                 )
             )
         }
@@ -83,9 +84,9 @@ public final class DashboardViewModel: ObservableObject {
         return snapshots
     }
 
-    private func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double) {
+    private func fetchConsumedMacros(for date: Date) async throws -> (proteinGrams: Double, carbsGrams: Double, fatGrams: Double, fiberGrams: Double) {
         guard let macroProvider = intakeProvider as? any DailyMacroIntakeProvider else {
-            return (0, 0, 0)
+            return (0, 0, 0, 0)
         }
         return try await macroProvider.fetchConsumedMacros(for: date)
     }

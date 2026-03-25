@@ -32,4 +32,8 @@ public struct UserProfile: Codable, Sendable {
         self.dailyCalorieTarget = dailyCalorieTarget
         self.hydrationTargetML = hydrationTargetML
     }
+
+    public var recommendedFiberGrams: Double {
+        max(25, (dailyCalorieTarget / 1000.0) * 14.0)
+    }
 }

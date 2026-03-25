@@ -9,6 +9,7 @@ public struct DailyCalorieSnapshot: Sendable {
     public var consumedProteinGrams: Double
     public var consumedCarbsGrams: Double
     public var consumedFatGrams: Double
+    public var consumedFiberGrams: Double
 
     public init(
         date: Date,
@@ -18,7 +19,8 @@ public struct DailyCalorieSnapshot: Sendable {
         targetKcal: Double,
         consumedProteinGrams: Double = 0,
         consumedCarbsGrams: Double = 0,
-        consumedFatGrams: Double = 0
+        consumedFatGrams: Double = 0,
+        consumedFiberGrams: Double = 0
     ) {
         self.date = date
         self.consumedKcal = consumedKcal
@@ -28,6 +30,7 @@ public struct DailyCalorieSnapshot: Sendable {
         self.consumedProteinGrams = consumedProteinGrams
         self.consumedCarbsGrams = consumedCarbsGrams
         self.consumedFatGrams = consumedFatGrams
+        self.consumedFiberGrams = consumedFiberGrams
     }
 
     public var totalBurnedKcal: Double { activeBurnedKcal + basalBurnedKcal }

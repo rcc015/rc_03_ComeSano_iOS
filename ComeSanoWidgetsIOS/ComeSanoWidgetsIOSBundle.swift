@@ -11,8 +11,10 @@ import SwiftUI
 @main
 struct ComeSanoWidgetsIOSBundle: WidgetBundle {
     var body: some Widget {
+        ClassicBalanceWidget()
         DailyBalanceWidget()
         MacrosWidget()
         QuickLogWidget()
+        SmartDashboardWidget()
     }
 }

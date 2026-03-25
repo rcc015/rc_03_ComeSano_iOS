@@ -9,6 +9,7 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
+@available(iOSApplicationExtension 18.0, *)
 struct ComeSanoWidgetsIOSControl: ControlWidget {
     static let kind: String = "rcTools.ComeSano.ComeSanoWidgetsIOS"
 
@@ -31,11 +32,13 @@ struct ComeSanoWidgetsIOSControl: ControlWidget {
 }
 
 extension ComeSanoWidgetsIOSControl {
+    @available(iOSApplicationExtension 18.0, *)
     struct Value {
         var isRunning: Bool
         var name: String
     }
 
+    @available(iOSApplicationExtension 18.0, *)
     struct Provider: AppIntentControlValueProvider {
         func previewValue(configuration: TimerConfiguration) -> Value {
             ComeSanoWidgetsIOSControl.Value(isRunning: false, name: configuration.timerName)
@@ -48,6 +51,7 @@ extension ComeSanoWidgetsIOSControl {
     }
 }
 
+@available(iOSApplicationExtension 18.0, *)
 struct TimerConfiguration: ControlConfigurationIntent {
     static let title: LocalizedStringResource = "Timer Name Configuration"
 
@@ -55,6 +59,7 @@ struct TimerConfiguration: ControlConfigurationIntent {
     var timerName: String
 }
 
+@available(iOSApplicationExtension 18.0, *)
 struct StartTimerIntent: SetValueIntent {
     static let title: LocalizedStringResource = "Start a timer"
 
@@ -70,6 +75,7 @@ struct StartTimerIntent: SetValueIntent {
         self.name = name
     }
 
+    @available(iOSApplicationExtension 18.0, *)
     func perform() async throws -> some IntentResult {
         // Start the timer…
         return .result()

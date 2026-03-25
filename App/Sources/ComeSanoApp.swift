@@ -35,6 +35,11 @@ private struct RootView: View {
         static let carbsTargetKey = "widget.macros.carbs.target"
         static let fatActualKey = "widget.macros.fat.actual"
         static let fatTargetKey = "widget.macros.fat.target"
+        static let fiberActualKey = "widget.macros.fiber.actual"
+        static let fiberTargetKey = "widget.macros.fiber.target"
+        static let suggestionKey = "widget.smart.suggestion"
+        static let watchQuickAddFavoritesKey = "watch.quickAddFavorites"
+        static let watchTodayMealsKey = "watch.todayMeals"
     }
 
     private enum AppTab: Hashable {
@@ -283,21 +288,31 @@ private struct RootView: View {
         .task {
             loadAppMode()
             loadQuickAddFavoritesIfNeeded()
+            syncWatchQuickAddFavorites()
+            syncWatchTodayMeals()
+            watchConnector.eventHandler = { event in
+                Task {
+                    await persistWatchEventIfNeeded(event)
+                    await dashboardViewModel.refresh()
+                    await foodLogViewModel.refresh()
+                }
+            }
             await ensureHealthDataLoaded()
             await syncHydrationLogsToDiaryIfNeeded(force: true)
             if !profileStore.hasCompletedOnboarding {
                 isShowingDietaryProfile = true
             }
         }
-        .onReceive(watchConnector.$lastEvent) { event in
-            guard event != nil else { return }
-            Task {
-                await dashboardViewModel.refresh()
-            }
-        }
         .onReceive(dashboardViewModel.$today) { snapshot in
             guard let snapshot else { return }
             syncWidgetStore(with: snapshot)
+            syncWatchState(with: snapshot)
+        }
+        .onReceive(planStore.$currentPlan) { _ in
+            syncWatchTodayMeals()
+        }
+        .onReceive(planStore.$weeklyPlansBySlot) { _ in
+            syncWatchTodayMeals()
         }
         .onOpenURL { url in
             handleDeepLink(url)
@@ -484,7 +499,7 @@ private struct RootView: View {
         let waterItemTemplate = FoodItem(
             name: "Vaso de agua",
             servingDescription: "250 ml",
-            nutrition: NutritionPerServing(calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0),
+            nutrition: NutritionPerServing(calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0),
             source: "notification-water",
             loggedAt: .now
         )
@@ -516,14 +531,52 @@ private struct RootView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    @MainActor
+    private func persistWatchEventIfNeeded(_ event: WatchConnector.Event) async {
+        let fingerprint = [
+            event.alimento,
+            event.servingDescription,
+            String(format: "%.2f", event.calorias),
+            String(Int(event.timestamp.timeIntervalSince1970))
+        ].joined(separator: "|")
+
+        let defaults = UserDefaults.standard
+        let processedKey = "watch.last.processed.event"
+        guard defaults.string(forKey: processedKey) != fingerprint else { return }
+
+        do {
+            let servingDescription = event.servingDescription.isEmpty ? "Apple Watch" : event.servingDescription
+            let item = FoodItem(
+                name: event.alimento,
+                servingDescription: servingDescription,
+                nutrition: NutritionPerServing(
+                    calories: event.calorias,
+                    proteinGrams: event.proteinGrams,
+                    carbsGrams: event.carbsGrams,
+                    fatGrams: event.fatGrams,
+                    fiberGrams: event.fiberGrams
+                ),
+                source: "watch",
+                loggedAt: event.timestamp
+            )
+            let existingItems = try await stores.fetchFoodItems()
+            try await stores.save(foodItems: existingItems + [item])
+            defaults.set(fingerprint, forKey: processedKey)
+        } catch {
+            // Leave event unmarked so next app activation can retry persistence.
+        }
+    }
+
     private func smartSuggestionPrompt(for snapshot: DailyCalorieSnapshot, goal: PrimaryGoal) -> String {
         let macroTarget = macroTargets(for: snapshot.date)
         let proteinTarget = Int((macroTarget?.protein ?? 0).rounded())
         let carbsTarget = Int((macroTarget?.carbs ?? 0).rounded())
         let fatTarget = Int((macroTarget?.fat ?? 0).rounded())
+        let fiberTarget = Int(recommendedFiberGrams.rounded())
         let proteinActual = Int(snapshot.consumedProteinGrams.rounded())
         let carbsActual = Int(snapshot.consumedCarbsGrams.rounded())
         let fatActual = Int(snapshot.consumedFatGrams.rounded())
+        let fiberActual = Int(snapshot.consumedFiberGrams.rounded())
 
         return """
         Eres un nutriólogo deportivo. Genera una sugerencia breve (máximo 2 frases) en español, clara y accionable.
@@ -538,6 +591,7 @@ private struct RootView: View {
         - Proteína: \(proteinActual)g / \(proteinTarget)g
         - Carbohidratos: \(carbsActual)g / \(carbsTarget)g
         - Grasas: \(fatActual)g / \(fatTarget)g
+        - Fibra: \(fiberActual)g / \(fiberTarget)g
 
         Prioriza recomendaciones sobre balance calórico y macros (si hay desvíos relevantes, menciónalos).
         Responde solo texto plano, sin markdown ni bullets.
@@ -571,6 +625,30 @@ private struct RootView: View {
         return nil
     }
 
+    private var recommendedFiberGrams: Double {
+        profileStore.profile.recommendedFiberGrams
+    }
+
+    private func defaultWidgetSuggestion(for snapshot: DailyCalorieSnapshot) -> String {
+        let adjustedBudget = snapshot.targetKcal + snapshot.activeBurnedKcal
+        let delta = snapshot.consumedKcal - adjustedBudget
+        let proteinTarget = macroTargets(for: snapshot.date)?.protein ?? 0
+
+        if delta > 150 {
+            return "Vas arriba de la meta ajustada. Prioriza una cena ligera y alta en proteína."
+        }
+        if delta < -250 {
+            return "Todavía tienes margen. Sube proteína y fibra con una comida simple y saciante."
+        }
+        if snapshot.consumedProteinGrams < proteinTarget * 0.7 {
+            return "Te falta proteína. Agrega yogurt griego, pollo, atún o huevo."
+        }
+        if snapshot.consumedFiberGrams < recommendedFiberGrams * 0.6 {
+            return "Vas bajo en fibra. Suma fruta, avena, verduras o leguminosas."
+        }
+        return "Vas bien. Mantén porciones estables y prioriza alimentos poco procesados."
+    }
+
     private func syncWidgetStore(with snapshot: DailyCalorieSnapshot) {
         guard let defaults = UserDefaults(suiteName: WidgetShared.appGroupID) else { return }
 
@@ -590,10 +668,206 @@ private struct RootView: View {
         defaults.set(target?.carbs ?? 0, forKey: WidgetShared.carbsTargetKey)
         defaults.set(snapshot.consumedFatGrams, forKey: WidgetShared.fatActualKey)
         defaults.set(target?.fat ?? 0, forKey: WidgetShared.fatTargetKey)
+        defaults.set(snapshot.consumedFiberGrams, forKey: WidgetShared.fiberActualKey)
+        defaults.set(recommendedFiberGrams, forKey: WidgetShared.fiberTargetKey)
+        defaults.set(defaultWidgetSuggestion(for: snapshot), forKey: WidgetShared.suggestionKey)
 
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
         #endif
+    }
+
+    private func syncWatchQuickAddFavorites() {
+        guard let defaults = UserDefaults(suiteName: WidgetShared.appGroupID) else { return }
+        let watchFavorites = quickAddFavorites.map {
+            WatchQuickAddFavoriteRecord(
+                name: $0.name,
+                servingDescription: $0.servingDescription,
+                calories: $0.calories,
+                proteinGrams: $0.proteinGrams,
+                carbsGrams: $0.carbsGrams,
+                fatGrams: $0.fatGrams,
+                fiberGrams: $0.fiberGrams
+            )
+        }
+        guard let data = try? JSONEncoder().encode(watchFavorites) else { return }
+        defaults.set(data, forKey: WidgetShared.watchQuickAddFavoritesKey)
+        syncWatchState()
+    }
+
+    private func syncWatchTodayMeals() {
+        guard let defaults = UserDefaults(suiteName: WidgetShared.appGroupID) else { return }
+        let meals = makeWatchTodayMeals()
+        guard let data = try? JSONEncoder().encode(meals) else { return }
+        defaults.set(data, forKey: WidgetShared.watchTodayMealsKey)
+        syncWatchState()
+    }
+
+    private func syncWatchState(with snapshot: DailyCalorieSnapshot? = nil) {
+        let snapshotToSync = snapshot ?? dashboardViewModel.today
+        guard let snapshotToSync else { return }
+
+        let favorites = quickAddFavorites.map {
+            WatchConnector.QuickAddFavoriteState(
+                name: $0.name,
+                servingDescription: $0.servingDescription,
+                calories: $0.calories,
+                proteinGrams: $0.proteinGrams,
+                carbsGrams: $0.carbsGrams,
+                fatGrams: $0.fatGrams,
+                fiberGrams: $0.fiberGrams
+            )
+        }
+        let todayMeals = makeWatchTodayMeals().map {
+            WatchConnector.TodayMealState(
+                label: $0.label,
+                name: $0.name,
+                servingDescription: $0.servingDescription,
+                calories: $0.calories,
+                proteinGrams: $0.proteinGrams,
+                carbsGrams: $0.carbsGrams,
+                fatGrams: $0.fatGrams,
+                fiberGrams: $0.fiberGrams,
+                scheduledHour: $0.scheduledHour,
+                scheduledMinute: $0.scheduledMinute
+            )
+        }
+
+        watchConnector.syncDashboardStateToWatch(
+            consumed: snapshotToSync.consumedKcal,
+            goal: snapshotToSync.targetKcal,
+            totalBurned: snapshotToSync.activeBurnedKcal + snapshotToSync.basalBurnedKcal,
+            proteinActual: snapshotToSync.consumedProteinGrams,
+            proteinTarget: macroTargets(for: snapshotToSync.date)?.protein ?? 0,
+            carbsActual: snapshotToSync.consumedCarbsGrams,
+            carbsTarget: macroTargets(for: snapshotToSync.date)?.carbs ?? 0,
+            fatActual: snapshotToSync.consumedFatGrams,
+            fatTarget: macroTargets(for: snapshotToSync.date)?.fat ?? 0,
+            fiberActual: snapshotToSync.consumedFiberGrams,
+            fiberTarget: recommendedFiberGrams,
+            quickAddFavorites: favorites,
+            todayMeals: todayMeals
+        )
+    }
+
+    private func makeWatchTodayMeals() -> [WatchTodayMealRecord] {
+        let selectedMeals: [(label: String, meal: NutritionMeal, hour: Int, minute: Int)]
+        if let weekly = planStore.weeklyPlan(for: .current),
+           let currentDay = currentDayFromWeeklyPlan(weekly) {
+            selectedMeals = scheduledWatchMeals(
+                from: [
+                    ("Desayuno", currentDay.desayuno, mealScheduleStore.breakfastHour, mealScheduleStore.breakfastMinute),
+                    ("Colación 1", currentDay.colacion1, mealScheduleStore.snack1Hour, mealScheduleStore.snack1Minute),
+                    ("Comida", currentDay.comida, mealScheduleStore.lunchHour, mealScheduleStore.lunchMinute),
+                    ("Colación 2", currentDay.colacion2, mealScheduleStore.snack2Hour, mealScheduleStore.snack2Minute),
+                    ("Cena", currentDay.cena, mealScheduleStore.dinnerHour, mealScheduleStore.dinnerMinute)
+                ]
+            )
+        } else if let daily = planStore.currentPlan {
+            selectedMeals = scheduledWatchMeals(
+                from: [
+                    ("Desayuno", daily.desayuno, mealScheduleStore.breakfastHour, mealScheduleStore.breakfastMinute),
+                    ("Colación 1", daily.colacion1, mealScheduleStore.snack1Hour, mealScheduleStore.snack1Minute),
+                    ("Comida", daily.comida, mealScheduleStore.lunchHour, mealScheduleStore.lunchMinute),
+                    ("Colación 2", daily.colacion2, mealScheduleStore.snack2Hour, mealScheduleStore.snack2Minute),
+                    ("Cena", daily.cena, mealScheduleStore.dinnerHour, mealScheduleStore.dinnerMinute)
+                ]
+            )
+        } else {
+            selectedMeals = []
+        }
+
+        return selectedMeals.map {
+            WatchTodayMealRecord(
+                label: $0.label,
+                name: $0.meal.titulo,
+                servingDescription: $0.meal.descripcion,
+                calories: Double($0.meal.calorias),
+                proteinGrams: estimatedMealNutrition(for: $0.meal, mealLabel: $0.label).proteinGrams,
+                carbsGrams: estimatedMealNutrition(for: $0.meal, mealLabel: $0.label).carbsGrams,
+                fatGrams: estimatedMealNutrition(for: $0.meal, mealLabel: $0.label).fatGrams,
+                fiberGrams: estimatedMealNutrition(for: $0.meal, mealLabel: $0.label).fiberGrams,
+                scheduledHour: $0.hour,
+                scheduledMinute: $0.minute
+            )
+        }
+    }
+
+    private func scheduledWatchMeals(
+        from meals: [(label: String, meal: NutritionMeal, hour: Int, minute: Int)]
+    ) -> [(label: String, meal: NutritionMeal, hour: Int, minute: Int)] {
+        meals
+            .filter { !$0.meal.titulo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { $0 }
+    }
+
+    private func currentDayFromWeeklyPlan(_ plan: WeeklyNutritionPlan) -> WeeklyPlanDay? {
+        guard !plan.dias.isEmpty else { return nil }
+        let mondayFirstIndex = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        let expectedDay = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"][mondayFirstIndex]
+
+        if let byName = plan.dias.first(where: { normalizeDayName($0.dia) == expectedDay }) {
+            return byName
+        }
+        if mondayFirstIndex < plan.dias.count {
+            return plan.dias[mondayFirstIndex]
+        }
+        return plan.dias.first
+    }
+
+    private func normalizeDayName(_ value: String) -> String {
+        value
+            .lowercased()
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func estimatedMealNutrition(for meal: NutritionMeal, mealLabel: String) -> NutritionPerServing {
+        if let weekly = planStore.weeklyPlan(for: .current) {
+            return estimateNutrition(
+                calories: Double(meal.calorias),
+                totalCalories: Double(max(weekly.caloriasObjetivoDiarias, 1)),
+                proteinTarget: Double(weekly.proteinaObjetivoGramos),
+                carbsTarget: Double(weekly.carbohidratosObjetivoGramos),
+                fatTarget: Double(weekly.grasasObjetivoGramos),
+                fiberTarget: recommendedFiberGrams
+            )
+        }
+        if let daily = planStore.currentPlan {
+            return estimateNutrition(
+                calories: Double(meal.calorias),
+                totalCalories: Double(max(daily.caloriasDiarias, 1)),
+                proteinTarget: Double(daily.proteinaGramos),
+                carbsTarget: Double(daily.carbohidratosGramos),
+                fatTarget: Double(daily.grasasGramos),
+                fiberTarget: recommendedFiberGrams
+            )
+        }
+        return NutritionPerServing(
+            calories: Double(meal.calorias),
+            proteinGrams: 0,
+            carbsGrams: 0,
+            fatGrams: 0,
+            fiberGrams: 0
+        )
+    }
+
+    private func estimateNutrition(
+        calories: Double,
+        totalCalories: Double,
+        proteinTarget: Double,
+        carbsTarget: Double,
+        fatTarget: Double,
+        fiberTarget: Double
+    ) -> NutritionPerServing {
+        let ratio = min(max(calories / max(totalCalories, 1), 0), 1)
+        return NutritionPerServing(
+            calories: calories,
+            proteinGrams: proteinTarget * ratio,
+            carbsGrams: carbsTarget * ratio,
+            fatGrams: fatTarget * ratio,
+            fiberGrams: fiberTarget * ratio
+        )
     }
 
     private func requestGeminiSuggestion(prompt: String, apiKey: String) async throws -> String? {
@@ -780,6 +1054,7 @@ private struct RootView: View {
         guard !hasLoadedQuickAddFavorites else { return }
         hasLoadedQuickAddFavorites = true
         quickAddFavorites = QuickAddFavoriteStore.load()
+        syncWatchQuickAddFavorites()
     }
 
     @MainActor
@@ -814,7 +1089,8 @@ private struct RootView: View {
             calories: safeCalories,
             proteinGrams: 0,
             carbsGrams: 0,
-            fatGrams: 0
+            fatGrams: 0,
+            fiberGrams: 0
         )
 
         do {
@@ -841,7 +1117,8 @@ private struct RootView: View {
             calories: max(0, favorite.calories),
             proteinGrams: max(0, favorite.proteinGrams),
             carbsGrams: max(0, favorite.carbsGrams),
-            fatGrams: max(0, favorite.fatGrams)
+            fatGrams: max(0, favorite.fatGrams),
+            fiberGrams: max(0, favorite.fiberGrams)
         )
 
         do {
@@ -896,18 +1173,21 @@ private struct RootView: View {
             calories: item.nutrition.calories,
             proteinGrams: item.nutrition.proteinGrams,
             carbsGrams: item.nutrition.carbsGrams,
-            fatGrams: item.nutrition.fatGrams
+            fatGrams: item.nutrition.fatGrams,
+            fiberGrams: item.nutrition.fiberGrams
         )
         var next = quickAddFavorites
         next.append(favorite)
         quickAddFavorites = next
         QuickAddFavoriteStore.save(next)
+        syncWatchQuickAddFavorites()
         return .added
     }
 
     private func removeQuickAddFavorite(id: String) {
         quickAddFavorites.removeAll { $0.id == id }
         QuickAddFavoriteStore.save(quickAddFavorites)
+        syncWatchQuickAddFavorites()
     }
 
     private func normalizeFavoriteName(_ value: String) -> String {
@@ -1098,20 +1378,25 @@ private struct RootView: View {
         return a.contains(b) || b.contains(a)
     }
 
-    private func saveFoodRecord(for preset: QuickAddPreset) async throws {
+    private func saveFoodRecord(
+        for preset: QuickAddPreset,
+        source: String = "quick-add",
+        loggedAt: Date = .now
+    ) async throws {
         let nutrition = NutritionPerServing(
             calories: preset.calories,
             proteinGrams: preset.proteinGrams,
             carbsGrams: preset.carbsGrams,
-            fatGrams: preset.fatGrams
+            fatGrams: preset.fatGrams,
+            fiberGrams: preset.fiberGrams
         )
 
         let item = FoodItem(
             name: preset.name,
             servingDescription: preset.servingDescription,
             nutrition: nutrition,
-            source: "quick-add",
-            loggedAt: .now
+            source: source,
+            loggedAt: loggedAt
         )
 
         let existingItems = try await stores.fetchFoodItems()
@@ -1126,15 +1411,11 @@ private struct RootView: View {
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
             .lowercased()
             .replacingOccurrences(of: " ", with: "-")
+        let estimatedNutrition = estimatedMealNutrition(for: meal, mealLabel: mealLabel)
         let item = FoodItem(
             name: meal.titulo,
             servingDescription: serving,
-            nutrition: NutritionPerServing(
-                calories: Double(meal.calorias),
-                proteinGrams: 0,
-                carbsGrams: 0,
-                fatGrams: 0
-            ),
+            nutrition: estimatedNutrition,
             source: "plan-\(normalizedLabel)",
             loggedAt: .now
         )
@@ -1164,6 +1445,7 @@ private struct QuickAddPreset {
     let proteinGrams: Double
     let carbsGrams: Double
     let fatGrams: Double
+    let fiberGrams: Double
 
     static func from(_ kind: DashboardView.QuickAddKind) -> Self {
         switch kind {
@@ -1174,7 +1456,8 @@ private struct QuickAddPreset {
                 calories: 45,
                 proteinGrams: 2.5,
                 carbsGrams: 4,
-                fatGrams: 1.5
+                fatGrams: 1.5,
+                fiberGrams: 0
             )
         case .waterGlass:
             return .init(
@@ -1183,7 +1466,8 @@ private struct QuickAddPreset {
                 calories: 0,
                 proteinGrams: 0,
                 carbsGrams: 0,
-                fatGrams: 0
+                fatGrams: 0,
+                fiberGrams: 0
             )
         case .apple:
             return .init(
@@ -1192,7 +1476,8 @@ private struct QuickAddPreset {
                 calories: 95,
                 proteinGrams: 0.5,
                 carbsGrams: 25,
-                fatGrams: 0.3
+                fatGrams: 0.3,
+                fiberGrams: 4.4
             )
         }
     }
@@ -1206,6 +1491,34 @@ private struct QuickAddFavoriteRecord: Codable, Identifiable {
     let proteinGrams: Double
     let carbsGrams: Double
     let fatGrams: Double
+    let fiberGrams: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, servingDescription, calories, proteinGrams, carbsGrams, fatGrams, fiberGrams
+    }
+
+    init(id: String, name: String, servingDescription: String, calories: Double, proteinGrams: Double, carbsGrams: Double, fatGrams: Double, fiberGrams: Double) {
+        self.id = id
+        self.name = name
+        self.servingDescription = servingDescription
+        self.calories = calories
+        self.proteinGrams = proteinGrams
+        self.carbsGrams = carbsGrams
+        self.fatGrams = fatGrams
+        self.fiberGrams = fiberGrams
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        servingDescription = try container.decode(String.self, forKey: .servingDescription)
+        calories = try container.decode(Double.self, forKey: .calories)
+        proteinGrams = try container.decodeIfPresent(Double.self, forKey: .proteinGrams) ?? 0
+        carbsGrams = try container.decodeIfPresent(Double.self, forKey: .carbsGrams) ?? 0
+        fatGrams = try container.decodeIfPresent(Double.self, forKey: .fatGrams) ?? 0
+        fiberGrams = try container.decodeIfPresent(Double.self, forKey: .fiberGrams) ?? 0
+    }
 
     var asDashboardFavorite: DashboardView.QuickAddFavorite {
         DashboardView.QuickAddFavorite(
@@ -1215,9 +1528,33 @@ private struct QuickAddFavoriteRecord: Codable, Identifiable {
             calories: calories,
             proteinGrams: proteinGrams,
             carbsGrams: carbsGrams,
-            fatGrams: fatGrams
+            fatGrams: fatGrams,
+            fiberGrams: fiberGrams
         )
     }
+}
+
+private struct WatchQuickAddFavoriteRecord: Codable {
+    let name: String
+    let servingDescription: String
+    let calories: Double
+    let proteinGrams: Double
+    let carbsGrams: Double
+    let fatGrams: Double
+    let fiberGrams: Double
+}
+
+private struct WatchTodayMealRecord: Codable {
+    let label: String
+    let name: String
+    let servingDescription: String
+    let calories: Double
+    let proteinGrams: Double
+    let carbsGrams: Double
+    let fatGrams: Double
+    let fiberGrams: Double
+    let scheduledHour: Int
+    let scheduledMinute: Int
 }
 
 private enum QuickAddFavoriteStore {

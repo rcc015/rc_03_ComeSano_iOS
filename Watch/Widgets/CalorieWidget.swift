@@ -16,6 +16,9 @@ private enum WidgetShared {
     static let carbsTargetKey = "widget.macros.carbs.target"
     static let fatActualKey = "widget.macros.fat.actual"
     static let fatTargetKey = "widget.macros.fat.target"
+    static let fiberActualKey = "widget.macros.fiber.actual"
+    static let fiberTargetKey = "widget.macros.fiber.target"
+    static let suggestionKey = "widget.smart.suggestion"
 }
 
 struct CalorieEntry: TimelineEntry {
@@ -32,6 +35,9 @@ struct CalorieEntry: TimelineEntry {
     let carbsTarget: Double
     let fatActual: Double
     let fatTarget: Double
+    let fiberActual: Double
+    let fiberTarget: Double
+    let smartSuggestion: String
 }
 
 struct CalorieProvider: TimelineProvider {
@@ -49,7 +55,10 @@ struct CalorieProvider: TimelineProvider {
             carbsActual: 140,
             carbsTarget: 210,
             fatActual: 50,
-            fatTarget: 70
+            fatTarget: 70,
+            fiberActual: 24,
+            fiberTarget: 30,
+            smartSuggestion: "Buen ritmo. Mantén una cena ligera con proteína y fibra."
         )
     }
 
@@ -85,7 +94,10 @@ struct CalorieProvider: TimelineProvider {
             carbsActual: defaults?.double(forKey: WidgetShared.carbsActualKey) ?? 0,
             carbsTarget: max(defaults?.double(forKey: WidgetShared.carbsTargetKey) ?? 200, 1),
             fatActual: defaults?.double(forKey: WidgetShared.fatActualKey) ?? 0,
-            fatTarget: max(defaults?.double(forKey: WidgetShared.fatTargetKey) ?? 70, 1)
+            fatTarget: max(defaults?.double(forKey: WidgetShared.fatTargetKey) ?? 70, 1),
+            fiberActual: defaults?.double(forKey: WidgetShared.fiberActualKey) ?? 0,
+            fiberTarget: max(defaults?.double(forKey: WidgetShared.fiberTargetKey) ?? 30, 1),
+            smartSuggestion: defaults?.string(forKey: WidgetShared.suggestionKey) ?? "Mantén porciones estables y alimentos poco procesados."
         )
     }
 }
@@ -241,68 +253,175 @@ private struct BalanceWidgetView: View {
     }
 }
 
-private struct MacrosWidgetView: View {
+private struct RingsWidgetView: View {
     let entry: CalorieEntry
     @Environment(\.widgetFamily) var family
 
+    private var ringSizes: (fiber: CGFloat, fat: CGFloat, carbs: CGFloat, protein: CGFloat) {
+        if family == .systemSmall {
+            return (92, 74, 56, 38)
+        }
+        return (118, 94, 70, 46)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if family == .systemMedium {
-                HStack {
-                    Text("Macronutrientes")
-                        .font(.caption.weight(.semibold))
-                    Spacer()
-                    Image(systemName: "chart.bar.fill")
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 10) {
+            HStack {
+                Text("Anillos")
+                    .font(.caption.weight(.semibold))
+                Spacer()
+                Image(systemName: "point.3.connected.trianglepath.dotted")
+                    .foregroundStyle(.secondary)
             }
 
-            macroLine("P", title: "Proteína", actual: entry.proteinActual, target: entry.proteinTarget, color: .blue)
-            macroLine("C", title: "Carbohidratos", actual: entry.carbsActual, target: entry.carbsTarget, color: .orange)
-            macroLine("G", title: "Grasas", actual: entry.fatActual, target: entry.fatTarget, color: .purple)
+            ZStack {
+                ring(progress: progress(entry.fiberActual, entry.fiberTarget), size: ringSizes.fiber, color: .green)
+                ring(progress: progress(entry.fatActual, entry.fatTarget), size: ringSizes.fat, color: .purple)
+                ring(progress: progress(entry.carbsActual, entry.carbsTarget), size: ringSizes.carbs, color: .orange)
+                ring(progress: progress(entry.proteinActual, entry.proteinTarget), size: ringSizes.protein, color: .blue)
+
+                VStack(spacing: 2) {
+                    Text("P C G F")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                    Text("\(Int(entry.proteinActual.rounded())) \(Int(entry.carbsActual.rounded())) \(Int(entry.fatActual.rounded())) \(Int(entry.fiberActual.rounded()))")
+                        .font(.system(size: family == .systemSmall ? 10 : 12, weight: .semibold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.65)
+                }
+            }
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: family == .systemSmall ? 0 : 4) {
+                legend("P", actual: entry.proteinActual, target: entry.proteinTarget, color: .blue)
+                legend("C", actual: entry.carbsActual, target: entry.carbsTarget, color: .orange)
+                legend("G", actual: entry.fatActual, target: entry.fatTarget, color: .purple)
+                legend("F", actual: entry.fiberActual, target: entry.fiberTarget, color: .green)
+            }
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
     }
 
-    private func macroLine(_ shortLabel: String, title: String, actual: Double, target: Double, color: Color) -> some View {
-        let safeTarget = max(target, 1)
-        let progress = min(max(actual / safeTarget, 0), 1)
+    private func progress(_ actual: Double, _ target: Double) -> Double {
+        let safe = max(target, 1)
+        return min(max(actual / safe, 0), 1)
+    }
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(shortLabel)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer()
-
-                if family == .systemMedium {
-                    Text(title)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(actual.rounded()))g / \(Int(target.rounded()))g")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("\(Int(actual.rounded()))/\(Int(target.rounded()))g")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(color.opacity(0.2))
-                        .frame(height: 6)
-                    Capsule()
-                        .fill(color)
-                        .frame(width: geo.size.width * progress, height: 6)
-                }
-            }
-            .frame(height: 6)
+    private func ring(progress: Double, size: CGFloat, color: Color) -> some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.18), lineWidth: family == .systemSmall ? 8 : 10)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: family == .systemSmall ? 8 : 10, lineCap: .round))
+                .rotationEffect(.degrees(-90))
         }
+        .frame(width: size, height: size)
+    }
+
+    private func legend(_ label: String, actual: Double, target: Double, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(color)
+            Text("\(Int(actual.rounded()))/\(Int(target.rounded()))")
+                .font(.system(size: family == .systemSmall ? 9 : 11, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct SuggestionWidgetView: View {
+    let entry: CalorieEntry
+    let includeRings: Bool
+    @Environment(\.widgetFamily) var family
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: includeRings ? 18 : 14) {
+                balanceRing(size: includeRings ? 90 : 78)
+                Spacer(minLength: 0)
+                if includeRings { compactRings }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Sugerencia Inteligente")
+                    .font(.caption.weight(.semibold))
+                Text(entry.smartSuggestion)
+                    .font(includeRings ? .subheadline.weight(.medium) : .footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(includeRings ? 5 : 5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if includeRings {
+                Text("Balance ajustado \(entry.adjustedDelta <= 0 ? "" : "+")\(Int(entry.adjustedDelta.rounded())) kcal")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(entry.adjustedDelta > 0 ? .red : .green)
+            }
+        }
+        .padding()
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    private var balanceProgress: Double {
+        let safeBudget = max(entry.adjustedBudget, 1)
+        return min(max(entry.consumed / safeBudget, 0), 1)
+    }
+
+    private func balanceRing(size: CGFloat) -> some View {
+        ZStack {
+            Circle()
+                .stroke(lineWidth: 12)
+                .opacity(0.2)
+                .foregroundStyle(entry.adjustedDelta > 0 ? .red : .green)
+
+            Circle()
+                .trim(from: 0, to: balanceProgress)
+                .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                .foregroundStyle(entry.adjustedDelta > 0 ? .red : .green)
+                .rotationEffect(.degrees(270))
+
+            VStack(spacing: 4) {
+                Text("\(Int(entry.consumed.rounded()))")
+                    .font(.system(size: size > 80 ? 22 : 18, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.7)
+                Text("kcal")
+                    .font(.caption2)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private func progress(_ actual: Double, _ target: Double) -> Double {
+        let safe = max(target, 1)
+        return min(max(actual / safe, 0), 1)
+    }
+
+    private func compactRing(progress: Double, size: CGFloat, color: Color) -> some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.18), lineWidth: 7)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var compactRings: some View {
+        ZStack {
+            compactRing(progress: progress(entry.fiberActual, entry.fiberTarget), size: 84, color: .green)
+            compactRing(progress: progress(entry.fatActual, entry.fatTarget), size: 66, color: .purple)
+            compactRing(progress: progress(entry.carbsActual, entry.carbsTarget), size: 48, color: .orange)
+            compactRing(progress: progress(entry.proteinActual, entry.proteinTarget), size: 30, color: .blue)
+        }
+        .frame(width: 96, height: 96)
     }
 }
 
@@ -375,6 +494,19 @@ struct DailyBalanceWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CalorieProvider()) { entry in
+            SuggestionWidgetView(entry: entry, includeRings: false)
+        }
+        .configurationDisplayName("Balance + Sugerencia")
+        .description("Balance diario con sugerencia inteligente.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
+struct ClassicBalanceWidget: Widget {
+    let kind = "ClassicBalanceWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CalorieProvider()) { entry in
             BalanceWidgetView(entry: entry)
         }
         .configurationDisplayName("Balance Diario")
@@ -388,11 +520,24 @@ struct MacrosWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CalorieProvider()) { entry in
-            MacrosWidgetView(entry: entry)
+            RingsWidgetView(entry: entry)
         }
-        .configurationDisplayName("Macros")
-        .description("Progreso diario de proteína, carbos y grasas.")
+        .configurationDisplayName("Anillos de Macros")
+        .description("Anillos pequeños de proteína, carbos, grasas y fibra.")
         .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
+struct SmartDashboardWidget: Widget {
+    let kind = "SmartDashboardWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CalorieProvider()) { entry in
+            SuggestionWidgetView(entry: entry, includeRings: true)
+        }
+        .configurationDisplayName("Balance Smart")
+        .description("Balance diario, anillos y sugerencia inteligente.")
+        .supportedFamilies([.systemLarge])
     }
 }
 

@@ -226,6 +226,16 @@ struct AISettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                Section {
+                    HStack {
+                        Spacer()
+                        Text(appVersionDescription)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                }
             }
             .navigationTitle("Configuración IA")
             .onAppear {
@@ -325,5 +335,11 @@ struct AISettingsView: View {
         components.hour = hour
         components.minute = minute
         return Calendar.current.date(from: components) ?? .now
+    }
+
+    private var appVersionDescription: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-"
+        return "Versión \(version) (\(build))"
     }
 }
